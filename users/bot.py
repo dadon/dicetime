@@ -170,8 +170,6 @@ def my_wallet(message):
             user_wallet_address=wallet.number,
             user_seed_phrase=wallet.mnemonic, amount=amount), None)
 
-# Запуск игральной кости
-
 
 def get_dice_event(chat_id, reply_to):
     dice_msg = bot.send_dice(chat_id, disable_notification=True, reply_to_message_id=reply_to)

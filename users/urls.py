@@ -1,5 +1,5 @@
 from django.urls import path
-from dice_time.settings import  API_TOKEN,ORIGIN
+from dice_time.settings import API_TOKEN, ORIGIN
 from .views import *
 from . import views
 from .bot import bot

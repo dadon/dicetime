@@ -70,8 +70,11 @@ class Tools(models.Model):
         verbose_name='Payload при выводе средств из бота',
         default='-',
         max_length=80)
+
     main_value = models.IntegerField(
-        verbose_name='Число для расчета в формуле выплат', default=3)
+        verbose_name='Число для расчета в формуле выплат', 
+        default=3)
+        
     coin = models.CharField(
         verbose_name='Монета,в к-ой идет выплата',
         default='-',
@@ -88,17 +91,29 @@ class DiceEvent(models.Model):
         User,
         verbose_name='Пользователь ТГ',
         on_delete=models.CASCADE)
-    date = models.DateTimeField(auto_now_add=True, verbose_name='Дата event-a')
+
+    date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Дата event-a')
+
     chat_id = models.IntegerField(
-        verbose_name='Id-чата совершенного event-a', default=1)
+        verbose_name='Id-чата совершенного event-a',
+        default=1)
+
     summa = models.PositiveIntegerField(
-        verbose_name='Cумма выигрыша', default=0)
-    is_win = models.BooleanField(verbose_name='Выиграл?', default=False)
+        verbose_name='Cумма выигрыша',
+        default=0)
+
+    is_win = models.BooleanField(
+        verbose_name='Выиграл?',
+        default=False)
+
     title_chat = models.CharField(
         max_length=40,
         blank=True,
         null=True,
         verbose_name='Имя чата')
+
     link_chat = models.CharField(
         max_length=40,
         blank=True,

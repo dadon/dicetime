@@ -1,5 +1,7 @@
 django==2.1.7
+django-autocomplete-light==3.5.1
+psycopg2-binary==2.8.4
 gunicorn==19.9.0
-pytz==2018.7
+pytz==2019.3
 pyTelegramBotAPI
 minter-sdk

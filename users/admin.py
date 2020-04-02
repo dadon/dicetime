@@ -1,5 +1,35 @@
 from django.contrib import admin
+from django import forms
+from dal import autocomplete
+
 from .models import *
+
+"""
+class IdForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+            queryset=User.objects.all(),
+            widget=autocomplete.ModelSelect2(url='id_select2')
+            )
+
+    class Meta:
+        model = Exceptions
+        fields = ('__all__')
+
+class WalletForm(forms.ModelForm):
+    number = forms.ModelChoiceField(
+            queryset=MinterWallets.objects.all(),
+            widget=autocomplete.ModelSelect2(url='wallet_select2')
+            )
+
+    class Meta:
+        model = Exceptions
+        fields = ('__all__')
+"""
+
+@admin.register(Exceptions)
+class ExceptionsAdmin(admin.ModelAdmin):
+    #form = WalletForm
+    list_display = ('user',)
 
 
 @admin.register(User)

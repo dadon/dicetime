@@ -9,6 +9,8 @@ from mintersdk.sdk.transactions import MinterTx, MinterSendCoinTx, MinterBuyCoin
 
 
 import requests
+
+from .dice import DiceBot
 from .models import *
 from dice_time.settings import API_TOKEN, ORIGIN
 import re
@@ -21,7 +23,7 @@ from .markups import *
 from django.conf import settings
 
 
-bot = telebot.TeleBot(API_TOKEN)
+bot = DiceBot(API_TOKEN)
 botInfo = bot.get_me()
 
 API = MinterAPI(settings.NODE_API_URL, **settings.TIMEOUTS)
@@ -106,6 +108,9 @@ def register(message):
         first_name=message.from_user.first_name,
         username=message.from_user.username
     )
+    if not MinterWallets.objects.filter(user=user).exists():
+        wallet = MinterWallet.create()
+        wal=MinterWallets.objects.create(user=user,number=wallet['address'],mnemonic=wallet['mnemonic'])
 
     return user
 
@@ -135,9 +140,9 @@ def command_start(message):
 
         send_message(message, hello_text, HOME_MARKUP)
 
-    # if not MinterWallets.objects.filter(user=user).exists():
-        #wallet = MinterWallet.create()
-        # wal=MinterWallets.objects.create(user=user,number=wallet['address'],mnemonic=wallet['mnemonic'])
+    if not MinterWallets.objects.filter(user=user).exists():
+        wallet = MinterWallet.create()
+        wal=MinterWallets.objects.create(user=user,number=wallet['address'],mnemonic=wallet['mnemonic'])
 
 # Обработка кнопки ⚠️ Правила
 @bot.message_handler(func=lambda message: message.text == '⚠️ Правила')
@@ -168,29 +173,26 @@ def my_wallet(message):
 # Запуск игральной кости
 
 
-def get_dice_event():
+def get_dice_event(chat_id, reply_to):
+    dice_msg = bot.send_dice(chat_id, disable_notification=True, reply_to_message_id=reply_to)
+    print(dice_msg)
+    return dice_msg
 
-    # Запуск игральной кости
-    # где number-это выпавшая кость
-    #number = do()
-    number = 3
-    return number
 
 # Расчет формулы и проверка на выигрыш в данном чате сегодня
-
-
 def formula_calculation(user, number, chat_id):
-    #date = datetime.date.today()
+    print('dice', number)
+    date = datetime.date.today()
     summa = 0
     if number > 3 and not DiceEvent.objects.filter(
             chat_id=chat_id,
-            date=date,
-            is_win=True).exists() and Exceptions.objects.filter(
+            date__date=date,
+            is_win=True).exists() and not Exceptions.objects.filter(
             user=user).exists():
-        # сумма выиыгрыша
+        # сумма выигрыша
         summa = number - 3  # формула подсчета выигрыша
-
     return summa
+
 
 
 def reply_to(message, text, markup):
@@ -207,7 +209,8 @@ def handle_messages(message):
         if text.find(trigger.name) > -1:
 
             # Письмо, к-ое отправляется ботом ( кидаем кубик )
-            mes = reply_to(message, text_answer, None)
+            number = get_dice_event(message.chat.id, reply_to=message.message_id)
+            #mes = reply_to(message, text_answer, None)
 
             if User.objects.filter(pk=message.from_user.id).exists():
                 user = User.objects.get(pk=message.from_user.id)
@@ -219,8 +222,8 @@ def handle_messages(message):
                     message.chat.id),
                 title_chat=message.chat.title,
                 link_chat=message.chat.username)
-            number = get_dice_event()
-            summa = formula_calculation(user, number, int(message.chat.id))
+            
+            summa = formula_calculation(user, number['dice']['value'], int(message.chat.id))
             if summa > 0:
                 url = 'https://telegram.me/commentsTGbot?start=event' + \
                     str(event.id)
@@ -231,7 +234,7 @@ def handle_messages(message):
                 event.summa = summa
                 event.is_win = True
                 event.save()
-                reply_to(mes, text_winner.format(X=summa, coin_ticker=str(
+                reply_to(number, text_winner.format(X=summa, coin_ticker=str(
                     Tools.objects.get(
                         pk=1).coin)), take_money_markup)
             break

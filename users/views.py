@@ -12,5 +12,5 @@ bot.polling(none_stop=True, interval=0)
 @csrf_exempt
 def tg_webhook(request):
     #bot.process_new_updates([ types.Update.de_json(request.body.decode("utf-8")) ])
-    # return HttpResponse('OK')
+    #return HttpResponse('OK')
     pass

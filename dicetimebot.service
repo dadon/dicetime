@@ -1,0 +1,26 @@
+[Unit]
+
+Description=Gunicorn instance to serve dicetimebot
+
+After=network.target
+
+
+
+[Service]
+
+User=www-data
+Group=www-data
+home/dicetimebot/env/bin
+
+WorkingDirectory=/home/dicetimebot
+EnvironmentFile=/home/dicetimebot/dicetimebot.env
+
+ExecStart=/home/dicetimebot/env/bin/gunicorn --access-logfile - --workers 2 --bind 127.0.0.1:5004 dicetimebot.wsgi:application
+
+Restart=always
+
+
+
+[Install]
+
+WantedBy=multi-user.target

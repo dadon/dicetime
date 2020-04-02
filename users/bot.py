@@ -9,6 +9,8 @@ from mintersdk.sdk.transactions import MinterTx, MinterSendCoinTx, MinterBuyCoin
 
 
 import requests
+
+from .dice import DiceBot
 from .models import *
 from dice_time.settings import API_TOKEN, ORIGIN
 import re
@@ -21,7 +23,7 @@ from .markups import *
 from django.conf import settings
 
 
-bot = telebot.TeleBot(API_TOKEN)
+bot = DiceBot(API_TOKEN)
 botInfo = bot.get_me()
 
 API = MinterAPI(settings.NODE_API_URL, **settings.TIMEOUTS)
@@ -165,31 +167,26 @@ def my_wallet(message):
             user_wallet_address=wallet.number,
             user_seed_phrase=wallet.mnemonic, amount=amount), None)
 
+
 # Запуск игральной кости
+def get_dice_event(chat_id, reply_to):
+    dice_msg = bot.send_dice(chat_id, disable_notification=True, reply_to_message_id=reply_to)
+    return dice_msg['dice']['value']
 
-
-def get_dice_event():
-
-    # Запуск игральной кости
-    # где number-это выпавшая кость
-    #number = do()
-    number = 3
-    return number
 
 # Расчет формулы и проверка на выигрыш в данном чате сегодня
-
-
 def formula_calculation(user, number, chat_id):
-    #date = datetime.date.today()
+    print('dice', number)
+    date = datetime.date.today()
     summa = 0
     if number > 3 and not DiceEvent.objects.filter(
             chat_id=chat_id,
-            date=date,
-            is_win=True).exists() and Exceptions.objects.filter(
+            date__date=date,
+            is_win=True).exists() and not Exceptions.objects.filter(
             user=user).exists():
         # сумма выиыгрыша
         summa = number - 3  # формула подсчета выигрыша
-
+    print(summa)
     return summa
 
 
@@ -219,7 +216,7 @@ def handle_messages(message):
                     message.chat.id),
                 title_chat=message.chat.title,
                 link_chat=message.chat.username)
-            number = get_dice_event()
+            number = get_dice_event(message.chat.id, reply_to=mes.message_id)
             summa = formula_calculation(user, number, int(message.chat.id))
             if summa > 0:
                 url = 'https://telegram.me/commentsTGbot?start=event' + \

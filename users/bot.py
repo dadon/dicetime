@@ -22,11 +22,10 @@ from .markups import *
 from django.conf import settings
 
 
-bot = DiceBot(API_TOKEN)
+bot = DiceBot(API_TOKEN,skip_pending=True)
 botInfo = bot.get_me()
 
 API = MinterAPI(settings.NODE_API_URL, **settings.TIMEOUTS)
-
 
 def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
     nonce = API.get_nonce(wallet_from['address'])
@@ -44,7 +43,9 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
 
 
 def send_cash(event):
-    wallet_from = MinterWallet.objects.create(
+    event.is_payed=True
+    event.save()
+    wallet_from = MinterWallet.create(
         mnemonic=Tools.objects.get(pk=1).join)
     wallet_to = MinterWallets.objects.get(user=event.user).number
     coin = str(Tools.objects.get(pk=1).coin)
@@ -54,8 +55,9 @@ def send_cash(event):
         wallet_to=wallet_to,
         coin=coin,
         value=event.summa,
-        gas_coin='BIP',
+        gas_coin=coin,
         payload=payload)
+    
 
 
 def send_message(message, text, markup):
@@ -77,8 +79,9 @@ def return_text(user,pk):
 def check_event(user, event_id, message):
     if DiceEvent.objects.filter(pk=event_id).exists():
         event = DiceEvent.objects.get(pk=event_id)
+        ms=Tools.objects.get(pk=1).ms
         if event.user == user:
-            ms=Tools.objects.get(pk=1).ms   
+               
             wallet = MinterWallets.objects.get(user=user)
             text=return_text(user,15)
             send_message(message,text.format(user_name=user.first_name),None)
@@ -108,14 +111,14 @@ def check_event(user, event_id, message):
             text=return_text(user,14)
             send_message(message,text,None)
             time.sleep(ms)
-        #send_cash(event)
+
+            if event.is_payed==False:
+                send_cash(event)
 
         else:
             if user.language.pk==1:
-                text=start_no_winner_text_ru
                 markup = HOME_MARKUP_RU
             else:
-                text=start_no_winner_text_eng
                 markup = HOME_MARKUP_ENG
 
             wallet = MinterWallets.objects.get(user=user)
@@ -311,7 +314,7 @@ def handle_messages(message):
             
             summa = formula_calculation(user, dice_msg.dice_value, int(message.chat.id))
             if summa > 0:
-                url = 'https://telegram.me/commentsTGbot?start=event' + \
+                url = 'https://telegram.me/'+str(botInfo.username)+'?start=event' + \
                     str(event.id)
                 take_money_markup = types.InlineKeyboardMarkup(row_width=1)
                 if user.language.pk==1:

@@ -121,6 +121,10 @@ class DiceEvent(models.Model):
         blank=True,
         null=True,
         verbose_name='Линк на чат')
+    
+    is_payed = models.BooleanField(
+        verbose_name='Оплачено?',
+        default=False)
 
     class Meta:
         verbose_name = 'События'

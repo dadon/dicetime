@@ -225,7 +225,7 @@ def choice_langeuage(call):
         markup = HOME_MARKUP_ENG
     send_message(call.message, text, markup)
     document=Texts.objects.get(pk=1).attachment
-    bot.send_document(message.chat.id,document)
+    bot.send_document(call.message.chat.id,document)
 
 
 # Обработка кнопки ⚠️ Правила

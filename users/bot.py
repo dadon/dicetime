@@ -266,14 +266,6 @@ def my_wallet(message):
             user_seed_phrase=wallet.mnemonic, amount=amount), None)
 
 
-<<<<<<< HEAD
-=======
-def get_dice_event(chat_id, reply_to):
-    dice_msg = bot.send_dice(chat_id, disable_notification=True, reply_to_message_id=reply_to)
-    return dice_msg
-
-
->>>>>>> master
 # Расчет формулы и проверка на выигрыш в данном чате сегодня
 def formula_calculation(user, number, chat_id):
     date = datetime.date.today()
@@ -287,7 +279,6 @@ def formula_calculation(user, number, chat_id):
         # сумма выигрыша
         summa = number - 3  # формула подсчета выигрыша
     return summa
-
 
 
 def reply_to(message, text, markup):

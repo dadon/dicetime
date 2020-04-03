@@ -18,8 +18,8 @@ class User(models.Model):
 
     id = models.BigIntegerField(verbose_name='ID в Телеграм', primary_key=True)
     is_bot = models.BooleanField(verbose_name='Статус бота', default=False)
-    first_name = models.CharField(verbose_name='Имя', max_length=255)
-    last_name = models.CharField(verbose_name='Фамилия', max_length=255)
+    first_name = models.CharField(verbose_name='Имя', max_length=255,blank=True,null=True)
+    last_name = models.CharField(verbose_name='Фамилия', max_length=255,blank=True,null=True)
     username = models.CharField(
         verbose_name='Никнейм пользователя',
         max_length=60,
@@ -64,7 +64,9 @@ class MinterWallets(models.Model):
 
 
 class Tools(models.Model):
-    #api= models.CharField(verbose_name='api-ноды (можно вставить минтер-ван) ')
+
+    ms = models.FloatField(verbose_name='Задержка между сообщениями цепочки в seconds', 
+        default=0)
     join = models.TextField(verbose_name='Seed-фраза')
     payload = models.CharField(
         verbose_name='Payload при выводе средств из бота',
@@ -119,6 +121,10 @@ class DiceEvent(models.Model):
         blank=True,
         null=True,
         verbose_name='Линк на чат')
+    
+    is_payed = models.BooleanField(
+        verbose_name='Оплачено?',
+        default=False)
 
     class Meta:
         verbose_name = 'События'
@@ -165,9 +171,10 @@ class Unbond(models.Model):
 
 
 class Texts(models.Model):
-
+    name = models.CharField(max_length=30, verbose_name='Название сообщения',default='Сообщение без номера')
     text_ru = models.TextField(verbose_name='Текст сообщения')
     text_eng = models.TextField(verbose_name='Текст сообщения eng')
+    attachment = models.FileField(verbose_name='Поле для видео',blank=True,null=True)
 
     class Meta:
         verbose_name = 'Текста'

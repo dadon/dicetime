@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 import os
 
-API_TOKEN = os.environ.get('API_TOKEN', '935789795:AAEx6R9KnjW6KkUuHD683RPs4DbDPZmFF04')
+API_TOKEN = os.environ.get('API_TOKEN', '1298737812:AAH-KVcdaSa-p_984JesLVdlC3h-32ULcTA')
 
 ORIGIN = os.environ.get('ORIGIN', '')
 
@@ -35,6 +35,9 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'dal',
+    'dal_select2',
+
     'users.apps.UsersConfig',
     'django.contrib.admin',
     'django.contrib.auth',

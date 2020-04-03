@@ -7,12 +7,14 @@ for lang in Language.objects.all():
                 callback_data='languag.id.{}'.format(lang.id)))
 
 
-HOME_MARKUP = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-HOME_MARKUP.add(
+HOME_MARKUP_RU = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+HOME_MARKUP_RU.add(
     types.KeyboardButton('⚠️ Правила'),
     types.KeyboardButton('💰 Мой Кошелёк')
 )
 
-#take_money_markup = types.InlineKeyboardMarkup(row_width=1)
-# take_money_markup.add(types.InlineKeyboardButton(str(event.name),
-#                callback_data='event.id.{}'.format(event.id)))
+HOME_MARKUP_ENG = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+HOME_MARKUP_ENG.add(
+    types.KeyboardButton('⚠️ Rooles'),
+    types.KeyboardButton('💰 My wallet')
+)

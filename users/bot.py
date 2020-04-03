@@ -278,7 +278,7 @@ def formula_calculation(user, number, chat_id):
     if number > int(Tools.objects.get(pk=1).main_value) and not DiceEvent.objects.filter(
             chat_id=chat_id,
             date__date=date,
-            is_win=True).exists() and not Exceptions.objects.filter(
+            is_win=True,user=user).exists() and not Exceptions.objects.filter(
             user=user).exists():
 
         # сумма выигрыша

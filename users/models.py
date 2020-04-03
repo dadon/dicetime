@@ -18,8 +18,8 @@ class User(models.Model):
 
     id = models.BigIntegerField(verbose_name='ID в Телеграм', primary_key=True)
     is_bot = models.BooleanField(verbose_name='Статус бота', default=False)
-    first_name = models.CharField(verbose_name='Имя', max_length=255)
-    last_name = models.CharField(verbose_name='Фамилия', max_length=255)
+    first_name = models.CharField(verbose_name='Имя', max_length=255,blank=True,null=True)
+    last_name = models.CharField(verbose_name='Фамилия', max_length=255,blank=True,null=True)
     username = models.CharField(
         verbose_name='Никнейм пользователя',
         max_length=60,

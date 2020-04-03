@@ -171,12 +171,6 @@ def my_wallet(message):
             user_seed_phrase=wallet.mnemonic, amount=amount), None)
 
 
-def get_dice_event(chat_id, reply_to):
-    dice_msg = bot.send_dice(chat_id, disable_notification=True, reply_to_message_id=reply_to)
-    print(dice_msg)
-    return dice_msg
-
-
 # Расчет формулы и проверка на выигрыш в данном чате сегодня
 def formula_calculation(user, number, chat_id):
     print('dice', number)
@@ -207,7 +201,7 @@ def handle_messages(message):
         if text.find(trigger.name) > -1:
 
             # Письмо, к-ое отправляется ботом ( кидаем кубик )
-            number = get_dice_event(message.chat.id, reply_to=message.message_id)
+            dice_msg = bot.send_dice(message.chat.id, disable_notification=True, reply_to_message_id=message.message_id)
             #mes = reply_to(message, text_answer, None)
 
             if User.objects.filter(pk=message.from_user.id).exists():
@@ -221,7 +215,8 @@ def handle_messages(message):
                 title_chat=message.chat.title,
                 link_chat=message.chat.username)
             
-            summa = formula_calculation(user, number['dice']['value'], int(message.chat.id))
+            summa = formula_calculation(user, dice_msg.dice_value, int(message.chat.id))
+            print(summa)
             if summa > 0:
                 url = 'https://telegram.me/commentsTGbot?start=event' + \
                     str(event.id)
@@ -232,7 +227,7 @@ def handle_messages(message):
                 event.summa = summa
                 event.is_win = True
                 event.save()
-                reply_to(number, text_winner.format(X=summa, coin_ticker=str(
+                reply_to(dice_msg, text_winner.format(X=summa, coin_ticker=str(
                     Tools.objects.get(
                         pk=1).coin)), take_money_markup)
             break

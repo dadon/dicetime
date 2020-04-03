@@ -64,7 +64,9 @@ class MinterWallets(models.Model):
 
 
 class Tools(models.Model):
-    #api= models.CharField(verbose_name='api-ноды (можно вставить минтер-ван) ')
+
+    ms = models.FloatField(verbose_name='Задержка между сообщениями цепочки в seconds', 
+        default=0)
     join = models.TextField(verbose_name='Seed-фраза')
     payload = models.CharField(
         verbose_name='Payload при выводе средств из бота',
@@ -165,9 +167,10 @@ class Unbond(models.Model):
 
 
 class Texts(models.Model):
-
+    name = models.CharField(max_length=30, verbose_name='Название сообщения',default='Сообщение без номера')
     text_ru = models.TextField(verbose_name='Текст сообщения')
     text_eng = models.TextField(verbose_name='Текст сообщения eng')
+    attachment = models.FileField(verbose_name='Поле для видео',blank=True,null=True)
 
     class Meta:
         verbose_name = 'Текста'

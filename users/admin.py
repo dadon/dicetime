@@ -4,37 +4,27 @@ from dal import autocomplete
 
 from .models import *
 
-"""
-class IdForm(forms.ModelForm):
+
+class ExceptionsForm(forms.ModelForm):
     user = forms.ModelChoiceField(
             queryset=User.objects.all(),
-            widget=autocomplete.ModelSelect2(url='id_select2')
+            widget=autocomplete.ModelSelect2(url='username_select2')
             )
 
     class Meta:
         model = Exceptions
         fields = ('__all__')
 
-class WalletForm(forms.ModelForm):
-    number = forms.ModelChoiceField(
-            queryset=MinterWallets.objects.all(),
-            widget=autocomplete.ModelSelect2(url='wallet_select2')
-            )
-
-    class Meta:
-        model = Exceptions
-        fields = ('__all__')
-"""
 
 @admin.register(Exceptions)
 class ExceptionsAdmin(admin.ModelAdmin):
-    #form = WalletForm
+    form = ExceptionsForm
     list_display = ('user',)
 
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-
+    
     list_display = ('id', 'first_name', 'last_name', 'username')
 
     search_fields = ['id', 'first_name', 'last_name', 'username']
@@ -66,9 +56,21 @@ class TriggersAdmin(admin.ModelAdmin):
 
 @admin.register(Tools)
 class ToolsAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('join', 'payload', 'main_value','coin')
+
 
 
 @admin.register(DiceEvent)
 class DiceEventAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('user', 'date', 'summa','is_win','chat_id', 'title_chat','link_chat',)
+
+    search_fields = ['user', 'title_chat', 'chat_id']
+
+
+@admin.register(Texts)
+class TextstAdmin(admin.ModelAdmin):
+    list_display = ('pk','name', 'text_ru', 'text_eng')
+    list_editable = ['name','text_ru', 'text_eng']
+
+    def has_delete_permission(self, request, obj=None):
+        return False

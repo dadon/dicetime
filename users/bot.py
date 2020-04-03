@@ -17,7 +17,6 @@ import re
 
 import time
 
-from .texts import *
 from .markups import *
 
 from django.conf import settings
@@ -44,17 +43,17 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
     return send_tx
 
 
-def send_cash(user, value):
+def send_cash(event):
     wallet_from = MinterWallet.objects.create(
         mnemonic=Tools.objects.get(pk=1).join)
-    wallet_to = MinterWallets.objects.get(user=user).number
+    wallet_to = MinterWallets.objects.get(user=event.user).number
     coin = str(Tools.objects.get(pk=1).coin)
     payload = str(Tools.objects.get(pk=1).payload)
     send(
         wallet_from=wallet_from,
         wallet_to=wallet_to,
         coin=coin,
-        value=value,
+        value=event.summa,
         gas_coin='BIP',
         payload=payload)
 
@@ -64,26 +63,93 @@ def send_message(message, text, markup):
         message.chat.id,
         text=text,
         parse_mode='markdown',
-        reply_markup=markup
+        reply_markup=markup,
+        disable_web_page_preview=True
     )
 
+def return_text(user,pk):
+    if user.language.pk==1:
+        text=Texts.objects.get(pk=pk).text_ru
+    else:
+        text=Texts.objects.get(pk=pk).text_eng
+    return text
 
 def check_event(user, event_id, message):
-    print(start_winner_text)
     if DiceEvent.objects.filter(pk=event_id).exists():
         event = DiceEvent.objects.get(pk=event_id)
         if event.user == user:
+            ms=Tools.objects.get(pk=1).ms   
+            wallet = MinterWallets.objects.get(user=user)
+            text=return_text(user,15)
+            send_message(message,text.format(user_name=user.first_name),None)
+            time.sleep(ms)
+            
+            
+            text=return_text(user,10)
+            send_message(message,text.format(user_wallet_address=wallet.number),None)
+            time.sleep(ms)
+
+            text=return_text(user,11)
+            send_message(message,text,None)
+            time.sleep(ms)
+
+            text=return_text(user,12)
+            send_message(message,text.format(user_seed_phrase=wallet.mnemonic),None)
+            time.sleep(ms)
+
+            text=return_text(user,1)
+            send_message(message,text,None)
+            time.sleep(ms)
+            document=Texts.objects.get(pk=1).attachment
+            bot.send_document(message.chat.id,document)
+            time.sleep(ms)
+
+
+            text=return_text(user,14)
+            send_message(message,text,None)
+            time.sleep(ms)
+
+        else:
+            if user.language.pk==1:
+                text=start_no_winner_text_ru
+                markup = HOME_MARKUP_RU
+            else:
+                text=start_no_winner_text_eng
+                markup = HOME_MARKUP_ENG
 
             wallet = MinterWallets.objects.get(user=user)
-            bot.send_message(
-                message.chat.id,
-                start_winner_text.format(
-                    user_name=user.first_name,
-                    user_wallet_address=wallet.number,
-                    user_seed_phrase=wallet.mnemonic),
-                parse_mode='markdown')
-        else:
-            send_message(message, start_no_winner_text, HOME_MARKUP)
+            text=return_text(user,8)
+            send_message(message,text,None)
+            time.sleep(ms)
+
+            text=return_text(user,9)
+            send_message(message,text,None)
+            time.sleep(ms)
+           
+            
+            text=return_text(user,10)
+            send_message(message,text.format(user_wallet_address=wallet.number),None)
+            time.sleep(ms)
+
+            text=return_text(user,11)
+            send_message(message,text,None)
+            time.sleep(ms)
+
+
+            text=return_text(user,12)
+            send_message(message,text.format(user_seed_phrase=wallet.mnemonic),None)
+            time.sleep(ms)
+
+            text=return_text(user,1)
+            send_message(message,text,None)
+            time.sleep(ms)
+            document=Texts.objects.get(pk=1).attachment
+            bot.send_document(message.chat.id,document)
+            time.sleep(ms)
+
+            text=return_text(user,14)
+            send_message(message,text,markup)
+            time.sleep(ms)
 
 
 def wallet_balance(wallet):
@@ -120,37 +186,61 @@ def register(message):
 def command_start(message):
     print("start")
     referal_id = int(message.text[12:] or -1)
-    print(message.text)
-    print(referal_id)
-    # Если пользователь уже зарегистрирован
 
+    # Если пользователь уже зарегистрирован
+    text=Texts.objects.get(pk=2).text_ru
     if User.objects.filter(pk=message.chat.id).exists():
         user = User.objects.get(pk=message.chat.id)
         if referal_id > -1:
             check_event(user, referal_id, message)
         else:
-            send_message(message, hello_text, HOME_MARKUP)
+            
+            send_message(message, text,language_markup)
 
     # Иначе регистрируем пользователя
     else:
 
         user = register(message)
-        # Включить, когда будет мультиязичность
-        # send_message(message,choose_language_text,language_markup)
-
-        send_message(message, hello_text, HOME_MARKUP)
+        send_message(message, text,language_markup)
 
     if not MinterWallets.objects.filter(user=user).exists():
         wallet = MinterWallet.create()
         wal=MinterWallets.objects.create(user=user,number=wallet['address'],mnemonic=wallet['mnemonic'])
 
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('languag.id.'))
+def choice_langeuage(call):
+    print(call.data)
+    user = User.objects.get(pk=call.message.chat.id)
+    flag=int(call.data[11:])
+    langeuage=Language.objects.get(pk=flag)
+    print(langeuage)
+    user.language=langeuage
+    user.save()
+    print(user.language.pk)
+    if user.language.pk==1:
+        text=Texts.objects.get(pk=1).text_ru
+        markup = HOME_MARKUP_RU
+    else:
+        text=Texts.objects.get(pk=1).text_eng
+        markup = HOME_MARKUP_ENG
+    send_message(call.message, text, markup)
+    document=Texts.objects.get(pk=1).attachment
+    bot.send_document(message.chat.id,document)
+
+
 # Обработка кнопки ⚠️ Правила
-@bot.message_handler(func=lambda message: message.text == '⚠️ Правила')
+@bot.message_handler(func=lambda message: message.text == '⚠️ Правила' or message.text == '⚠️ Rooles')
 def rooles(message):
     user = User.objects.get(pk=message.chat.id)
+    if user.language.pk==1:
+        text=Texts.objects.get(pk=4).text_ru
+    else:
+        text=Texts.objects.get(pk=4).text_eng
     send_message(
         message,
-        rooles_text.format(
+        text.format(
             user_name=user.first_name,
             coin_ticker=str(
                 Tools.objects.get(
@@ -159,14 +249,18 @@ def rooles(message):
 
 
 # Обработка кнопки 💰 Мой Кошелёк
-@bot.message_handler(func=lambda message: message.text == '💰 Мой Кошелёк')
+@bot.message_handler(func=lambda message: message.text == '💰 Мой Кошелёк' or message.text == '💰 My wallet')
 def my_wallet(message):
     user = User.objects.get(pk=message.chat.id)
     wallet = MinterWallets.objects.get(user=user)
     amount = wallet_balance(wallet)
+    if user.language.pk==1:
+        text=Texts.objects.get(pk=16).text_ru
+    else:
+        text=Texts.objects.get(pk=16).text_eng
     send_message(
         message,
-        my_wallet_text.format(
+        text.format(
             user_wallet_address=wallet.number,
             user_seed_phrase=wallet.mnemonic, amount=amount), None)
 
@@ -179,14 +273,14 @@ def get_dice_event(chat_id, reply_to):
 
 # Расчет формулы и проверка на выигрыш в данном чате сегодня
 def formula_calculation(user, number, chat_id):
-    print('dice', number)
     date = datetime.date.today()
     summa = 0
-    if number > 3 and not DiceEvent.objects.filter(
+    if number > int(Tools.objects.get(pk=1).main_value) and not DiceEvent.objects.filter(
             chat_id=chat_id,
             date__date=date,
             is_win=True).exists() and not Exceptions.objects.filter(
             user=user).exists():
+
         # сумма выигрыша
         summa = number - 3  # формула подсчета выигрыша
     return summa
@@ -205,10 +299,7 @@ def handle_messages(message):
 
     for trigger in Triggers.objects.all():
         if text.find(trigger.name) > -1:
-
-            # Письмо, к-ое отправляется ботом ( кидаем кубик )
-            number = get_dice_event(message.chat.id, reply_to=message.message_id)
-            #mes = reply_to(message, text_answer, None)
+            dice_msg = bot.send_dice(message.chat.id, disable_notification=True, reply_to_message_id=message.message_id)
 
             if User.objects.filter(pk=message.from_user.id).exists():
                 user = User.objects.get(pk=message.from_user.id)
@@ -221,18 +312,30 @@ def handle_messages(message):
                 title_chat=message.chat.title,
                 link_chat=message.chat.username)
             
-            summa = formula_calculation(user, number['dice']['value'], int(message.chat.id))
+            summa = formula_calculation(user, dice_msg.dice_value, int(message.chat.id))
+            print(summa)
             if summa > 0:
                 url = 'https://telegram.me/commentsTGbot?start=event' + \
                     str(event.id)
                 take_money_markup = types.InlineKeyboardMarkup(row_width=1)
+                if user.language.pk==1:
+                    text_markup=Texts.objects.get(pk=5).text_ru
+                else:
+                    text_markup=Texts.objects.get(pk=5).text_eng
+                
                 take_money_markup.add(
                     types.InlineKeyboardButton(
-                        '😎 Забрать монеты', url=url))
+                        str(text_markup), url=url))
+
                 event.summa = summa
                 event.is_win = True
                 event.save()
-                reply_to(number, text_winner.format(X=summa, coin_ticker=str(
+                if user.language.pk==1:
+                    text=Texts.objects.get(pk=7).text_ru
+                else:
+                    text=Texts.objects.get(pk=7).text_eng
+
+                reply_to(dice_msg, text.format(X=summa, coin_ticker=str(
                     Tools.objects.get(
                         pk=1).coin)), take_money_markup)
-            break
+        break

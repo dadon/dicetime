@@ -9,7 +9,7 @@ from users.models import User
 from django.shortcuts import HttpResponse
 
 
-bot.polling(none_stop=True, interval=0)
+#bot.polling(none_stop=True, interval=0)
 # Telegram Webhook handler
 @csrf_exempt
 def tg_webhook(request):

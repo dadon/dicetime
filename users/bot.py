@@ -108,6 +108,7 @@ def check_event(user, event_id, message):
             text=return_text(user,14)
             send_message(message,text,None)
             time.sleep(ms)
+        #send_cash(event)
 
         else:
             if user.language.pk==1:
@@ -211,14 +212,11 @@ def command_start(message):
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('languag.id.'))
 def choice_langeuage(call):
-    print(call.data)
     user = User.objects.get(pk=call.message.chat.id)
     flag=int(call.data[11:])
     langeuage=Language.objects.get(pk=flag)
-    print(langeuage)
     user.language=langeuage
     user.save()
-    print(user.language.pk)
     if user.language.pk==1:
         text=Texts.objects.get(pk=1).text_ru
         markup = HOME_MARKUP_RU
@@ -267,7 +265,6 @@ def my_wallet(message):
 
 def get_dice_event(chat_id, reply_to):
     dice_msg = bot.send_dice(chat_id, disable_notification=True, reply_to_message_id=reply_to)
-    print(dice_msg)
     return dice_msg
 
 
@@ -313,7 +310,6 @@ def handle_messages(message):
                 link_chat=message.chat.username)
             
             summa = formula_calculation(user, dice_msg.dice_value, int(message.chat.id))
-            print(summa)
             if summa > 0:
                 url = 'https://telegram.me/commentsTGbot?start=event' + \
                     str(event.id)

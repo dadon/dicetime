@@ -266,11 +266,6 @@ def my_wallet(message):
             user_seed_phrase=wallet.mnemonic, amount=amount), None)
 
 
-def get_dice_event(chat_id, reply_to):
-    dice_msg = bot.send_dice(chat_id, disable_notification=True, reply_to_message_id=reply_to)
-    return dice_msg
-
-
 # Расчет формулы и проверка на выигрыш в данном чате сегодня
 def formula_calculation(user, number, chat_id):
     date = datetime.date.today()
@@ -286,7 +281,6 @@ def formula_calculation(user, number, chat_id):
     return summa
 
 
-
 def reply_to(message, text, markup):
     mes = bot.reply_to(message=message, text=text, reply_markup=markup)
     return mes
@@ -299,6 +293,8 @@ def handle_messages(message):
 
     for trigger in Triggers.objects.all():
         if text.find(trigger.name) > -1:
+
+            # Письмо, к-ое отправляется ботом ( кидаем кубик )
             dice_msg = bot.send_dice(message.chat.id, disable_notification=True, reply_to_message_id=message.message_id)
 
             if User.objects.filter(pk=message.from_user.id).exists():
@@ -313,6 +309,7 @@ def handle_messages(message):
                 link_chat=message.chat.username)
             
             summa = formula_calculation(user, dice_msg.dice_value, int(message.chat.id))
+
             if summa > 0:
                 url = 'https://telegram.me/'+str(botInfo.username)+'?start=event' + \
                     str(event.id)
@@ -329,6 +326,7 @@ def handle_messages(message):
                 event.summa = summa
                 event.is_win = True
                 event.save()
+
                 if user.language.pk==1:
                     text=Texts.objects.get(pk=7).text_ru
                 else:

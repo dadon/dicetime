@@ -22,8 +22,9 @@ from .markups import *
 from django.conf import settings
 
 
-bot = DiceBot(API_TOKEN,skip_pending=True)
+bot = DiceBot(API_TOKEN, skip_pending=True)
 botInfo = bot.get_me()
+print('Me: ', botInfo)
 
 API = MinterAPI(settings.NODE_API_URL, **settings.TIMEOUTS)
 
@@ -288,7 +289,11 @@ def reply_to(message, text, markup):
 # Обработчик всех остальных сообщений ( в группе отлавливаем триггеры)
 @bot.message_handler(func=lambda message: message.chat.type != 'private')
 def handle_messages(message):
+    if message.chat.id not in [-1001363709875, -1001270954422]:
+        send_message(message, 'Тут нельзя)', None)
+        return
 
+    print('allowed')
     text = str(message.text)
 
     for trigger in Triggers.objects.all():

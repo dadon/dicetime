@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 import os
 
-API_TOKEN = os.environ.get('API_TOKEN', '1298737812:AAH-KVcdaSa-p_984JesLVdlC3h-32ULcTA')
+API_TOKEN = os.environ.get('API_TOKEN', '926398474:AAEQLs_e8opc_WnLnJL0p--9pwrzR26GMDo')
 
 ORIGIN = os.environ.get('ORIGIN', 'https://tg-dice-bot.avallon.im/')
 

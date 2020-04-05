@@ -8,7 +8,7 @@ from users.models import User
 
 from django.shortcuts import HttpResponse
 
-
+# bot.delete_webhook()
 # bot.polling(none_stop=True, interval=0)
 # Telegram Webhook handler
 @csrf_exempt
@@ -17,16 +17,13 @@ def tg_webhook(request):
     return HttpResponse('OK')
 
 
-
-
-
 class UsernameSelect2Autocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if not self.request.user.is_staff:
             return User.objects.none()
-
-        qs = User.objects.all()
-        if self.q:
-            qs = User.objects.filter(id__istartswith=self.q)\
-                             .distinct()
-            return qs
+        if not self.q:
+            return User.objects.order_by('-date_reg')
+        return (
+            User.objects.filter(username__istartswith=self.q) |
+            User.objects.filter(id__istartswith=self.q)
+        ).order_by('-date_reg')[:10]

@@ -273,7 +273,7 @@ def formula_calculation(user, number, chat_id):
         date__date=date,
         is_win=True,
         user=user).count()
-    win_limit = 50
+    win_limit = 1
     if number > int(Tools.objects.get(pk=1).main_value) \
             and not Exceptions.objects.filter(user=user).exists() \
             and count_wins <= win_limit:

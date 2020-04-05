@@ -311,9 +311,9 @@ def formula_calculation(user, dice, chat_id):
     details['chat_limit_day'] = user_settings.chat_limit_day
     details['total_limit_day'] = user_settings.total_limit_day
 
-    chat_size_multiplier = 1.0 + members / 10000
-    details['chat_size_multiplier'] = 3 if chat_size_multiplier > 3 else chat_size_multiplier
     _one = Decimal(1)
+    chat_size_multiplier = _one + members / 10000
+    details['chat_size_multiplier'] = 3 if chat_size_multiplier > 3 else chat_size_multiplier
     details['user_limit_multiplier'] = user_limit_multiplier = _one - user_won_day / user_settings.user_limit_day
     details['chat_limit_multiplier'] = chat_limit_multiplier = _one - chat_won_day / user_settings.chat_limit_day
     details['total_limit_multiplier'] = total_limit_multiplier = _one - total_won_day / user_settings.total_limit_day

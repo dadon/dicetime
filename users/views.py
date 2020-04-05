@@ -12,7 +12,7 @@ from django.shortcuts import HttpResponse
 
 if API_TOKEN == LOCAL:
     bot.delete_webhook()
-    # bot.polling(none_stop=True, interval=0)
+    bot.polling(none_stop=True, interval=0)
 else:
     bot.set_webhook(ORIGIN + 'tg/' + API_TOKEN)
 

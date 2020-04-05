@@ -232,7 +232,7 @@ def choice_langeuage(call):
 
 
 # Обработка кнопки ⚠️ Правила
-@bot.message_handler(func=lambda message: message.text == '⚠️ Правила' or message.text == '⚠️ Rooles')
+@bot.message_handler(func=lambda message: message.text == '⚠️ Правила' or message.text == '⚠️ Rules')
 def rooles(message):
     user = User.objects.get(pk=message.chat.id)
     if user.language.pk==1:

@@ -15,6 +15,6 @@ HOME_MARKUP_RU.add(
 
 HOME_MARKUP_ENG = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 HOME_MARKUP_ENG.add(
-    types.KeyboardButton('⚠️ Rooles'),
+    types.KeyboardButton('⚠️ Rules'),
     types.KeyboardButton('💰 My wallet')
 )

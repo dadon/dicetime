@@ -145,4 +145,4 @@ static
 
 .idea/
 .venv/
-*.sqlite3
+

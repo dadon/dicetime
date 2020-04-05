@@ -13,7 +13,7 @@ import os
 
 API_TOKEN = os.environ.get('API_TOKEN', '1298737812:AAH-KVcdaSa-p_984JesLVdlC3h-32ULcTA')
 
-ORIGIN = os.environ.get('ORIGIN', '')
+ORIGIN = os.environ.get('ORIGIN', 'https://tg-dice-bot.avallon.im/')
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)

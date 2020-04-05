@@ -286,10 +286,10 @@ def formula_calculation(user, dice, chat_id):
         .filter(user=user, date__date=today, is_win=True) \
         .annotate(chat_sum_user=Sum('summa'))
 
-    user_won_day = Decimal(0)
+    user_won_day = 0
     is_chat_win = False
     for aggregation in user_stat:
-        user_won_day += aggregation['chat_sum_user']
+        user_won_day += float(aggregation['chat_sum_user'])
         if aggregation['chat_id'] == chat_id:
             is_chat_win = True
     details['user_won_day'] = user_won_day
@@ -303,20 +303,19 @@ def formula_calculation(user, dice, chat_id):
         .annotate(chat_sum=Sum('summa'))
     chat_stat = {d['chat_id']: d['chat_sum'] for d in chat_stat}
 
-    details['chat_won_day'] = chat_won_day = chat_stat.get(chat_id, 0)
-    details['total_won_day'] = total_won_day = sum(chat_stat.values())
+    details['chat_won_day'] = chat_won_day = float(chat_stat.get(chat_id, 0))
+    details['total_won_day'] = total_won_day = float(sum(chat_stat.values()))
 
     user_settings = Tools.objects.get(pk=1)
-    details['user_limit_day'] = user_settings.user_limit_day
-    details['chat_limit_day'] = user_settings.chat_limit_day
-    details['total_limit_day'] = user_settings.total_limit_day
+    details['user_limit_day'] = user_limit_day = float(user_settings.user_limit_day)
+    details['chat_limit_day'] = chat_limit_day = float(user_settings.chat_limit_day)
+    details['total_limit_day'] = total_limit_day = float(user_settings.total_limit_day)
 
-    _one = Decimal(1)
-    chat_size_multiplier = _one + Decimal(members) / 10000
+    chat_size_multiplier = 1 + members / 10000
     details['chat_size_multiplier'] = 3 if chat_size_multiplier > 3 else chat_size_multiplier
-    details['user_limit_multiplier'] = user_limit_multiplier = _one - user_won_day / user_settings.user_limit_day
-    details['chat_limit_multiplier'] = chat_limit_multiplier = _one - chat_won_day / user_settings.chat_limit_day
-    details['total_limit_multiplier'] = total_limit_multiplier = _one - total_won_day / user_settings.total_limit_day
+    details['user_limit_multiplier'] = user_limit_multiplier = 1 - user_won_day / user_limit_day
+    details['chat_limit_multiplier'] = chat_limit_multiplier = 1 - chat_won_day / chat_limit_day
+    details['total_limit_multiplier'] = total_limit_multiplier = 1 - total_won_day / total_limit_day
 
     dice_number = dice - 3
     if dice_number < 0:
@@ -366,7 +365,7 @@ def on_dice_event(message):
         types.InlineKeyboardButton(
             str(text_markup), url=url))
 
-    event.summa = Decimal(reward)
+    event.summa = reward
     event.is_win = True
     event.save()
 
@@ -379,8 +378,12 @@ def on_dice_event(message):
         Tools.objects.get(pk=1).coin)), take_money_markup)
 
 
+def is_group_text(msg):
+    return msg.chat.type != 'private' and msg.text and not msg.text.startswith('/')
+
+
 # Обработчик всех остальных сообщений ( в группе отлавливаем триггеры)
-@bot.message_handler(func=lambda message: message.chat.type != 'private' and not message.text.startswith('/'))
+@bot.message_handler(func=is_group_text)
 def handle_messages(message):
     msg_normalized = ' '.join(filter(None, str(message.text).lower().split(' ')))
     allow = [-1001363709875, -1001270954422]

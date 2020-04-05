@@ -286,7 +286,7 @@ def formula_calculation(user, dice, chat_id):
         .filter(user=user, date__date=today, is_win=True) \
         .annotate(chat_sum_user=Sum('summa'))
 
-    user_won_day = 0
+    user_won_day = Decimal(0)
     is_chat_win = False
     for aggregation in user_stat:
         user_won_day += aggregation['chat_sum_user']

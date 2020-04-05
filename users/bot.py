@@ -353,7 +353,7 @@ def handle_messages(message):
             return
 
 
-@bot.message_handler(commands=['dice'])
+@bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id == 69062067)
 def dice_test(message):
     try:
         user = User.objects.get(pk=message.from_user.id)

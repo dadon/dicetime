@@ -2,6 +2,7 @@ import datetime
 from random import randint
 
 import telebot
+from django.db.models import Count, Sum
 from telebot import types
 
 import mintersdk
@@ -267,24 +268,52 @@ def my_wallet(message):
             user_seed_phrase=wallet.mnemonic, amount=amount), None)
 
 
-# Расчет формулы и проверка на выигрыш в данном чате сегодня
-def formula_calculation(user, number, chat_id):
-    date = datetime.date.today()
-    summa = 0
+# проверка на blacklist или выигрыш в данном чате сегодня + расчет формулы
+def formula_calculation(user, dice, chat_id):
+    is_blacklisted = Exceptions.objects.filter(user=user).exists()
+    if is_blacklisted:
+        return 0
 
-    count_wins = DiceEvent.objects.filter(
-        chat_id=chat_id,
-        date__date=date,
-        is_win=True,
-        user=user).count()
-    win_limit = 1
-    if number > int(Tools.objects.get(pk=1).main_value) \
-            and not Exceptions.objects.filter(user=user).exists() \
-            and count_wins < win_limit:
+    today = date.today()
+    settings = Tools.objects.get(pk=1)
+    members = bot.get_chat_members_count(chat_id)
 
-        # сумма выигрыша
-        summa = number - 3  # формула подсчета выигрыша
-    return summa
+    user_stat = DiceEvent.objects \
+        .values('chat_id') \
+        .filter(user=user, date__date=today, is_win=True) \
+        .annotate(chat_sum_user=Sum('summa'))
+
+    user_won_day = 0
+    is_chat_win = False
+    for aggregation in user_stat:
+        user_won_day += aggregation['chat_sum_user']
+        if aggregation['chat_id'] == chat_id:
+            is_chat_win = True
+
+    if is_chat_win:
+        return 0
+
+    chat_stat = DiceEvent.objects \
+        .values('chat_id') \
+        .filter(date__date=today, is_win=True) \
+        .annotate(chat_sum=Sum('summa'))
+    chat_stat = {d['chat_id']: d['chat_sum'] for d in chat_stat}
+
+    chat_won_day = chat_stat.get(chat_id, 0)
+    total_won_day = sum(chat_stat.values())
+
+    chat_size_multiplier = max(3, 1.0 + members / 10000)
+    user_limit_multiplier = 1.0 - user_won_day / settings.user_limit_day
+    chat_limit_multiplier = 1.0 - chat_won_day / settings.chat_limit_day
+    total_limit_multiplier = 1.0 - total_won_day / settings.total_limit_day
+
+    dice_number = dice - 3
+    if dice_number < 0:
+        dice_number = 0
+    if dice_number > 3:
+        dice_number = 3
+
+    return dice_number * chat_size_multiplier * user_limit_multiplier * chat_limit_multiplier * total_limit_multiplier
 
 
 def reply_to(message, text, markup):
@@ -361,18 +390,15 @@ def dice_test(message):
         user = register(message)
 
     args = message.text.split(' ')[1:]
-    dice, chat = None, message.chat.id
+    dice, chat_id = None, message.chat.id
     if len(args) == 1 and args[0].isdigit():
-        dice = int(args[0])
+        dice = int(args[0]) % 6
     if not dice:
         dice = randint(1, 6)
 
-    if len(args) == 2 and args[1]:
-        chat = args[1]
-
-    members = bot.get_chat_members_count(chat)
+    reward = formula_calculation(user, dice, chat_id)
     response = f"""
-Dice: {dice}
-Members: {members}
-    """
+    Dice: {dice}
+    Reward: {reward}
+"""
     send_message(message, response, None)

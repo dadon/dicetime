@@ -73,9 +73,15 @@ class Tools(models.Model):
         default='-',
         max_length=80)
 
-    main_value = models.IntegerField(
-        verbose_name='Число для расчета в формуле выплат', 
-        default=3)
+    user_limit_day = models.IntegerField(
+        verbose_name='Лимит таймов на одного юзера, в день',
+        default=5)
+    chat_limit_day = models.IntegerField(
+        verbose_name='Лимит таймов на чат, в день',
+        default=200)
+    total_limit_day = models.IntegerField(
+        verbose_name='Общий лимит таймов на всех, в день',
+        default=4000)
         
     coin = models.CharField(
         verbose_name='Монета,в к-ой идет выплата',

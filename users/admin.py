@@ -56,7 +56,7 @@ class TriggersAdmin(admin.ModelAdmin):
 
 @admin.register(Tools)
 class ToolsAdmin(admin.ModelAdmin):
-    list_display = ('join', 'payload', 'main_value','coin')
+    list_display = ('join', 'payload','coin', 'user_limit_day', 'chat_limit_day', 'total_limit_day')
 
 
 

@@ -3,5 +3,6 @@ django-autocomplete-light==3.5.1
 psycopg2-binary==2.8.4
 gunicorn==19.9.0
 pytz==2019.3
-pyTelegramBotAPI
-minter-sdk
+pyTelegramBotAPI==3.6.7
+minter-sdk==1.0.26
+django-dotenv==1.4.2

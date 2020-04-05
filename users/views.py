@@ -4,13 +4,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import permission_required
 
 from dice_time.settings import API_TOKEN, LOCAL, ORIGIN
-from .bot import bot, botInfo
+from .bot import bot
 from dal import autocomplete
 from users.models import User
 
 from django.shortcuts import HttpResponse
 
-if API_TOKEN == LOCAL:
+if LOCAL:
     bot.delete_webhook()
     bot.polling(none_stop=True, interval=0)
 else:

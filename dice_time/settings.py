@@ -10,12 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 import os
+import dotenv
 
+dotenv.read_dotenv('dice.env')
+
+LOCAL = bool(int(os.environ.get('LOCAL', '0')))
 ADMINS = [69062067, 144406]
-BETA = '926398474:AAEQLs_e8opc_WnLnJL0p--9pwrzR26GMDo'
-PROD = ''
-LOCAL = '1298737812:AAH-KVcdaSa-p_984JesLVdlC3h-32ULcTA'
-API_TOKEN = os.environ.get('API_TOKEN', BETA)
+ALLOWED_GROUPS = [-1001363709875, -1001270954422, -485822459, -438800801]
+API_TOKEN = os.environ.get('API_TOKEN', '')
 
 ORIGIN = os.environ.get('ORIGIN', 'https://tg-dice-bot.avallon.im/')
 

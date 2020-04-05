@@ -1,4 +1,5 @@
 import datetime
+import logging
 from decimal import Decimal
 from random import randint
 from pprint import pformat
@@ -17,7 +18,7 @@ from telebot.types import Message
 
 from .dice import DiceBot
 from .models import *
-from dice_time.settings import API_TOKEN, ORIGIN, LOCAL, BETA, PROD
+from dice_time.settings import API_TOKEN, ORIGIN, LOCAL, ALLOWED_GROUPS
 import re
 
 import time
@@ -26,8 +27,10 @@ from .markups import *
 
 from django.conf import settings
 
+logging.getLogger('TeleBot').setLevel(logging.DEBUG)
 
-bot = DiceBot(API_TOKEN, skip_pending=True, threaded=LOCAL != API_TOKEN)
+
+bot = DiceBot(API_TOKEN, skip_pending=True, threaded=not LOCAL)
 botInfo = bot.get_me()
 print('Me: ', botInfo)
 
@@ -45,7 +48,7 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
         payload=payload)
     send_tx.sign(wallet_from['private_key'])
     print(f'Sending: {value} {coin} -> {wallet_to}')
-    if API_TOKEN in [BETA, PROD]:
+    if not LOCAL:
         r = API.send_transaction(send_tx.signed_tx)
         print(f'Send TX response:\n{r}')
     return send_tx
@@ -386,13 +389,10 @@ def is_group_text(msg):
 @bot.message_handler(func=is_group_text)
 def handle_messages(message):
     msg_normalized = ' '.join(filter(None, str(message.text).lower().split(' ')))
-    allow = [-1001363709875, -1001270954422]
-    if API_TOKEN != LOCAL:
-        allow.append(-485822459)
 
     for trigger in Triggers.objects.all():
         if trigger.name in msg_normalized:
-            if message.chat.id not in allow:
+            if ALLOWED_GROUPS and message.chat.id not in ALLOWED_GROUPS:
                 send_message(message, 'Тут нельзя)', None)
                 return
 

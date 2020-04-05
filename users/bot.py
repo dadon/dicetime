@@ -47,6 +47,8 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
 
 
 def send_cash(event):
+    if not event.summa:
+        return
     event.is_payed=True
     event.save()
     wallet_from = MinterWallet.create(

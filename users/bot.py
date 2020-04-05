@@ -347,7 +347,7 @@ def on_dice_event(message):
         title_chat=message.chat.title,
         link_chat=message.chat.username)
 
-    reward = formula_calculation(user, dice_msg.dice_value, message.chat.id)
+    reward, _ = formula_calculation(user, dice_msg.dice_value, message.chat.id)
     if not reward:
         return
 

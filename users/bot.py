@@ -336,10 +336,13 @@ def on_dice_event(message):
 def handle_messages(message):
     print('chatid', message.chat.id)
     msg_normalized = ' '.join(filter(None, str(message.text).lower().split(' ')))
+    allow = [-1001363709875, -1001270954422]
+    if API_TOKEN != LOCAL:
+        allow.append(-485822459)
 
     for trigger in Triggers.objects.all():
         if trigger.name in msg_normalized:
-            if message.chat.id not in [-1001363709875, -1001270954422, -485822459]:
+            if message.chat.id not in allow:
                 print('somebody')
                 print(message.chat)
                 print(message.from_user)

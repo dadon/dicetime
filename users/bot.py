@@ -12,7 +12,7 @@ import requests
 
 from .dice import DiceBot
 from .models import *
-from dice_time.settings import API_TOKEN, ORIGIN
+from dice_time.settings import API_TOKEN, ORIGIN, LOCAL, BETA, PROD
 import re
 
 import time
@@ -29,6 +29,7 @@ print('Me: ', botInfo)
 API = MinterAPI(settings.NODE_API_URL, **settings.TIMEOUTS)
 
 def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
+
     nonce = API.get_nonce(wallet_from['address'])
     send_tx = MinterSendCoinTx(
         coin,
@@ -38,8 +39,10 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
         gas_coin=gas_coin,
         payload=payload)
     send_tx.sign(wallet_from['private_key'])
-    r = API.send_transaction(send_tx.signed_tx)
-    print(f'Send TX response:\n{r}')
+    print(f'Sending: {value} {coin} -> {wallet_to}')
+    if API_TOKEN in [BETA, PROD]:
+        r = API.send_transaction(send_tx.signed_tx)
+        print(f'Send TX response:\n{r}')
     return send_tx
 
 
@@ -51,6 +54,7 @@ def send_cash(event):
     wallet_to = MinterWallets.objects.get(user=event.user).number
     coin = str(Tools.objects.get(pk=1).coin)
     payload = str(Tools.objects.get(pk=1).payload)
+
     send(
         wallet_from=wallet_from,
         wallet_to=wallet_to,
@@ -81,6 +85,12 @@ def check_event(user, event_id, message):
     if DiceEvent.objects.filter(pk=event_id).exists():
         event = DiceEvent.objects.get(pk=event_id)
         ms=Tools.objects.get(pk=1).ms
+
+        if user.language.pk == 1:
+            markup = HOME_MARKUP_RU
+        else:
+            markup = HOME_MARKUP_ENG
+
         if event.user == user:
                
             wallet = MinterWallets.objects.get(user=user)
@@ -102,26 +112,18 @@ def check_event(user, event_id, message):
             time.sleep(ms)
 
             text=return_text(user,1)
-            send_message(message,text,None)
-            time.sleep(ms)
             document=Texts.objects.get(pk=1).attachment
-            bot.send_document(message.chat.id,document)
+            bot.send_document(message.chat.id,document,caption=text)
             time.sleep(ms)
-
 
             text=return_text(user,14)
-            send_message(message,text,None)
+            send_message(message,text,markup)
             time.sleep(ms)
 
             if event.is_payed==False:
                 send_cash(event)
 
         else:
-            if user.language.pk==1:
-                markup = HOME_MARKUP_RU
-            else:
-                markup = HOME_MARKUP_ENG
-
             wallet = MinterWallets.objects.get(user=user)
             text=return_text(user,8)
             send_message(message,text,None)
@@ -146,10 +148,8 @@ def check_event(user, event_id, message):
             time.sleep(ms)
 
             text=return_text(user,1)
-            send_message(message,text,None)
-            time.sleep(ms)
             document=Texts.objects.get(pk=1).attachment
-            bot.send_document(message.chat.id,document)
+            bot.send_document(message.chat.id,document,caption=text)
             time.sleep(ms)
 
             text=return_text(user,14)
@@ -198,10 +198,6 @@ def command_start(message):
         user = User.objects.get(pk=message.chat.id)
         if referal_id > -1:
             check_event(user, referal_id, message)
-        else:
-            
-            send_message(message, text,language_markup)
-
     # Иначе регистрируем пользователя
     else:
 
@@ -286,58 +282,64 @@ def reply_to(message, text, markup):
     mes = bot.reply_to(message=message, text=text, reply_markup=markup)
     return mes
 
+
+def on_dice_event(message):
+    # Письмо, к-ое отправляется ботом ( кидаем кубик )
+    dice_msg = bot.send_dice(message.chat.id, disable_notification=True, reply_to_message_id=message.message_id)
+
+    if User.objects.filter(pk=message.from_user.id).exists():
+        user = User.objects.get(pk=message.from_user.id)
+    else:
+        user = register(message)
+    event = DiceEvent.objects.create(
+        user=user,
+        chat_id=message.chat.id,
+        title_chat=message.chat.title,
+        link_chat=message.chat.username)
+
+    summa = formula_calculation(user, dice_msg.dice_value, message.chat.id)
+    if not summa:
+        return
+
+    url = 'https://telegram.me/' + str(botInfo.username) + '?start=event' + \
+          str(event.id)
+    take_money_markup = types.InlineKeyboardMarkup(row_width=1)
+    if user.language.pk == 1:
+        text_markup = Texts.objects.get(pk=5).text_ru
+    else:
+        text_markup = Texts.objects.get(pk=5).text_eng
+
+    take_money_markup.add(
+        types.InlineKeyboardButton(
+            str(text_markup), url=url))
+
+    event.summa = summa
+    event.is_win = True
+    event.save()
+
+    if user.language.pk == 1:
+        text = Texts.objects.get(pk=7).text_ru
+    else:
+        text = Texts.objects.get(pk=7).text_eng
+
+    reply_to(dice_msg, text.format(X=summa, coin_ticker=str(
+        Tools.objects.get(pk=1).coin)), take_money_markup)
+
+
 # Обработчик всех остальных сообщений ( в группе отлавливаем триггеры)
 @bot.message_handler(func=lambda message: message.chat.type != 'private')
 def handle_messages(message):
-    if message.chat.id not in [-1001363709875, -1001270954422]:
-        send_message(message, 'Тут нельзя)', None)
-        return
-
-    print('allowed')
-    text = str(message.text)
+    msg_normalized = ' '.join(filter(None, str(message.text).lower().split(' ')))
 
     for trigger in Triggers.objects.all():
-        if text.find(trigger.name) > -1:
+        if trigger.name in msg_normalized:
+            if message.chat.id not in [-1001363709875, -1001270954422]:
+                print('somebody')
+                print(message.chat)
+                print(message.from_user)
+                send_message(message, 'Тут нельзя)', None)
+                return
 
-            # Письмо, к-ое отправляется ботом ( кидаем кубик )
-            dice_msg = bot.send_dice(message.chat.id, disable_notification=True, reply_to_message_id=message.message_id)
-
-            if User.objects.filter(pk=message.from_user.id).exists():
-                user = User.objects.get(pk=message.from_user.id)
-            else:
-                user = register(message)
-            event = DiceEvent.objects.create(
-                user=user,
-                chat_id=int(
-                    message.chat.id),
-                title_chat=message.chat.title,
-                link_chat=message.chat.username)
-            
-            summa = formula_calculation(user, dice_msg.dice_value, int(message.chat.id))
-
-            if summa > 0:
-                url = 'https://telegram.me/'+str(botInfo.username)+'?start=event' + \
-                    str(event.id)
-                take_money_markup = types.InlineKeyboardMarkup(row_width=1)
-                if user.language.pk==1:
-                    text_markup=Texts.objects.get(pk=5).text_ru
-                else:
-                    text_markup=Texts.objects.get(pk=5).text_eng
-                
-                take_money_markup.add(
-                    types.InlineKeyboardButton(
-                        str(text_markup), url=url))
-
-                event.summa = summa
-                event.is_win = True
-                event.save()
-
-                if user.language.pk==1:
-                    text=Texts.objects.get(pk=7).text_ru
-                else:
-                    text=Texts.objects.get(pk=7).text_eng
-
-                reply_to(dice_msg, text.format(X=summa, coin_ticker=str(
-                    Tools.objects.get(
-                        pk=1).coin)), take_money_markup)
-        break
+            print('allowed', message.chat)
+            on_dice_event(message)
+            return

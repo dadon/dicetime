@@ -2,14 +2,21 @@ from telebot import types
 from django.views.decorators.csrf import csrf_exempt
 
 from django.contrib.auth.decorators import permission_required
+
+from dice_time.settings import API_TOKEN, LOCAL, ORIGIN
 from .bot import bot, botInfo
 from dal import autocomplete
 from users.models import User
 
 from django.shortcuts import HttpResponse
 
-# bot.delete_webhook()
-# bot.polling(none_stop=True, interval=0)
+if API_TOKEN == LOCAL:
+    bot.delete_webhook()
+    bot.polling(none_stop=True, interval=0)
+else:
+    bot.set_webhook(ORIGIN + 'tg/' + API_TOKEN)
+
+
 # Telegram Webhook handler
 @csrf_exempt
 def tg_webhook(request):

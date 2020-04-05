@@ -11,7 +11,10 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 import os
 
-API_TOKEN = os.environ.get('API_TOKEN', '926398474:AAEQLs_e8opc_WnLnJL0p--9pwrzR26GMDo')
+BETA = '926398474:AAEQLs_e8opc_WnLnJL0p--9pwrzR26GMDo'
+PROD = ''
+LOCAL = '1298737812:AAH-KVcdaSa-p_984JesLVdlC3h-32ULcTA'
+API_TOKEN = os.environ.get('API_TOKEN', LOCAL)
 
 ORIGIN = os.environ.get('ORIGIN', 'https://tg-dice-bot.avallon.im/')
 
@@ -95,6 +98,29 @@ DATABASES = {
     #    'HOST': 'localhost',
     #    'PORT': '',
     #}
+}
+
+
+LOGGING = {
+    'version': 1,
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        }
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+        }
+    },
+    'loggers': {
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+        }
+    }
 }
 
 

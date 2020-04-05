@@ -147,29 +147,6 @@ class Exceptions(models.Model):
         verbose_name_plural = 'Бан-лист'
 
 
-class Unbond(models.Model):
-
-    date = models.DateTimeField(verbose_name='Дата', auto_now_add=True)
-    summa = models.FloatField(default=0.00, verbose_name='Cумма вывода')
-    user = models.ForeignKey(
-        User,
-        verbose_name='ТГ пользователь',
-        on_delete=models.CASCADE)
-    from_wallet = models.ForeignKey(
-        MinterWallets,
-        verbose_name='Кошелек с к-ого выведено',
-        on_delete=models.CASCADE)
-    to_wallet = models.CharField(
-        max_length=85,
-        blank=True,
-        null=True,
-        verbose_name='Номер кошелька, куда вывели')
-
-    class Meta:
-        verbose_name = 'Обналичивание выигрышей'
-        verbose_name_plural = 'Обналичивание выигрышей'
-
-
 class Texts(models.Model):
     name = models.CharField(max_length=30, verbose_name='Название сообщения',default='Сообщение без номера')
     text_ru = models.TextField(verbose_name='Текст сообщения')

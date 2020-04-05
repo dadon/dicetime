@@ -27,17 +27,25 @@ from .markups import *
 
 from django.conf import settings
 
-logging.getLogger('TeleBot').setLevel(logging.DEBUG)
 
+def is_group_text(msg):
+    return msg.chat.type != 'private' and msg.text and not msg.text.startswith('/')
+
+
+def is_private_text(msg):
+    return msg.chat.type == 'private' and msg.text
+
+logger = logging.getLogger('Dice')
 
 bot = DiceBot(API_TOKEN, skip_pending=True, threaded=not LOCAL)
 botInfo = bot.get_me()
-print('Me: ', botInfo)
+logger.info(f'Me: {botInfo}')
+
 
 API = MinterAPI(settings.NODE_API_URL, **settings.TIMEOUTS)
 
-def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
 
+def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
     nonce = API.get_nonce(wallet_from['address'])
     send_tx = MinterSendCoinTx(
         coin,
@@ -47,10 +55,10 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
         gas_coin=gas_coin,
         payload=payload)
     send_tx.sign(wallet_from['private_key'])
-    print(f'Sending: {value} {coin} -> {wallet_to}')
+    logger.info(f'Sending: {value} {coin} -> {wallet_to}')
     if not LOCAL:
         r = API.send_transaction(send_tx.signed_tx)
-        print(f'Send TX response:\n{r}')
+        logger.info(f'Send TX response:\n{r}')
     return send_tx
 
 
@@ -197,9 +205,9 @@ def register(message):
 
 
 # Обработчик команды /start
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start'], func=is_private_text)
 def command_start(message):
-    print("start")
+    logger.info('########### start')
     referal_id = int(message.text[12:] or -1)
 
     # Если пользователь уже зарегистрирован
@@ -210,7 +218,6 @@ def command_start(message):
             check_event(user, referal_id, message)
     # Иначе регистрируем пользователя
     else:
-
         user = register(message)
         send_message(message, text,language_markup)
 
@@ -379,10 +386,6 @@ def on_dice_event(message):
 
     reply_to(dice_msg, text.format(X=reward, coin_ticker=str(
         Tools.objects.get(pk=1).coin)), take_money_markup)
-
-
-def is_group_text(msg):
-    return msg.chat.type != 'private' and msg.text and not msg.text.startswith('/')
 
 
 # Обработчик всех остальных сообщений ( в группе отлавливаем триггеры)

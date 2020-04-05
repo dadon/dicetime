@@ -10,6 +10,10 @@ from users.models import User
 
 from django.shortcuts import HttpResponse
 
+from .tools import log_setup
+
+log_setup()
+
 if LOCAL:
     bot.delete_webhook()
     bot.polling(none_stop=True, interval=0)

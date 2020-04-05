@@ -14,7 +14,7 @@ import os
 BETA = '926398474:AAEQLs_e8opc_WnLnJL0p--9pwrzR26GMDo'
 PROD = ''
 LOCAL = '1298737812:AAH-KVcdaSa-p_984JesLVdlC3h-32ULcTA'
-API_TOKEN = os.environ.get('API_TOKEN', LOCAL)
+API_TOKEN = os.environ.get('API_TOKEN', BETA)
 
 ORIGIN = os.environ.get('ORIGIN', 'https://tg-dice-bot.avallon.im/')
 

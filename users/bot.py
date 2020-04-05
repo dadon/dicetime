@@ -324,7 +324,8 @@ def formula_calculation(user, dice, chat_id):
 
     details['dice'] = dice
     details['dice_number'] = dice_number
-    reward = dice_number * chat_size_multiplier * user_limit_multiplier * chat_limit_multiplier * total_limit_multiplier
+    reward = round(
+        dice_number * chat_size_multiplier * user_limit_multiplier * chat_limit_multiplier * total_limit_multiplier, 6)
     return reward, details
 
 

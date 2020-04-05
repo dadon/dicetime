@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 from random import randint
 from pprint import pformat
 import telebot
@@ -364,7 +365,7 @@ def on_dice_event(message):
         types.InlineKeyboardButton(
             str(text_markup), url=url))
 
-    event.summa = reward
+    event.summa = Decimal(reward)
     event.is_win = True
     event.save()
 

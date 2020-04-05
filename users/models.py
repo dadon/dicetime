@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 import datetime
 from datetime import date
@@ -108,9 +110,10 @@ class DiceEvent(models.Model):
         verbose_name='Id-чата совершенного event-a',
         default=1)
 
-    summa = models.PositiveIntegerField(
+    summa = models.DecimalField(
+        decimal_places=6, max_digits=24,
         verbose_name='Cумма выигрыша',
-        default=0)
+        default=Decimal(0))
 
     is_win = models.BooleanField(
         verbose_name='Выиграл?',

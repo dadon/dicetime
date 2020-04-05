@@ -334,11 +334,12 @@ def on_dice_event(message):
 # Обработчик всех остальных сообщений ( в группе отлавливаем триггеры)
 @bot.message_handler(func=lambda message: message.chat.type != 'private')
 def handle_messages(message):
+    print('chatid', message.chat.id)
     msg_normalized = ' '.join(filter(None, str(message.text).lower().split(' ')))
 
     for trigger in Triggers.objects.all():
         if trigger.name in msg_normalized:
-            if message.chat.id not in [-1001363709875, -1001270954422]:
+            if message.chat.id not in [-1001363709875, -1001270954422, -485822459]:
                 print('somebody')
                 print(message.chat)
                 print(message.from_user)

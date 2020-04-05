@@ -267,11 +267,16 @@ def my_wallet(message):
 def formula_calculation(user, number, chat_id):
     date = datetime.date.today()
     summa = 0
-    if number > int(Tools.objects.get(pk=1).main_value) and not DiceEvent.objects.filter(
-            chat_id=chat_id,
-            date__date=date,
-            is_win=True,user=user).exists() and not Exceptions.objects.filter(
-            user=user).exists():
+
+    count_wins = DiceEvent.objects.filter(
+        chat_id=chat_id,
+        date__date=date,
+        is_win=True,
+        user=user).count()
+    win_limit = 50
+    if number > int(Tools.objects.get(pk=1).main_value) \
+            and not Exceptions.objects.filter(user=user).exists() \
+            and count_wins <= win_limit:
 
         # сумма выигрыша
         summa = number - 3  # формула подсчета выигрыша

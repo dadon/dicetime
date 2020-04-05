@@ -293,7 +293,7 @@ def formula_calculation(user, dice, chat_id):
             is_chat_win = True
     details['user_won_day'] = user_won_day
     details['is_chat_win'] = is_chat_win
-    if is_chat_win:
+    if is_chat_win and user.id not in settings.ADMINS:
         return 0, details
 
     chat_stat = DiceEvent.objects \
@@ -347,8 +347,8 @@ def on_dice_event(message):
         title_chat=message.chat.title,
         link_chat=message.chat.username)
 
-    summa = formula_calculation(user, dice_msg.dice_value, message.chat.id)
-    if not summa:
+    reward = formula_calculation(user, dice_msg.dice_value, message.chat.id)
+    if not reward:
         return
 
     url = 'https://telegram.me/' + str(botInfo.username) + '?start=event' + \
@@ -363,7 +363,7 @@ def on_dice_event(message):
         types.InlineKeyboardButton(
             str(text_markup), url=url))
 
-    event.summa = summa
+    event.summa = reward
     event.is_win = True
     event.save()
 
@@ -372,7 +372,7 @@ def on_dice_event(message):
     else:
         text = Texts.objects.get(pk=7).text_eng
 
-    reply_to(dice_msg, text.format(X=summa, coin_ticker=str(
+    reply_to(dice_msg, text.format(X=reward, coin_ticker=str(
         Tools.objects.get(pk=1).coin)), take_money_markup)
 
 
@@ -394,7 +394,7 @@ def handle_messages(message):
             return
 
 
-@bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id in [69062067, 144406])
+@bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id in settings.ADMINS)
 def dice_test(message):
     uid = message.from_user.id
     if message.reply_to_message:

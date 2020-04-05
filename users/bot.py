@@ -1,4 +1,6 @@
 import datetime
+from random import randint
+
 import telebot
 from telebot import types
 
@@ -84,7 +86,7 @@ def return_text(user,pk):
     return text
 
 def check_event(user, event_id, message):
-    if DiceEvent.objects.filter(pk=event_id).exists():
+    if DiceEvent.objects.filter(pk=event_id, is_win=True).exists():
         event = DiceEvent.objects.get(pk=event_id)
         ms=Tools.objects.get(pk=1).ms
 
@@ -94,7 +96,7 @@ def check_event(user, event_id, message):
             markup = HOME_MARKUP_ENG
 
         if event.user == user:
-               
+
             wallet = MinterWallets.objects.get(user=user)
             text=return_text(user,15)
             send_message(message,text.format(user_name=user.first_name),None)
@@ -278,7 +280,7 @@ def formula_calculation(user, number, chat_id):
     win_limit = 1
     if number > int(Tools.objects.get(pk=1).main_value) \
             and not Exceptions.objects.filter(user=user).exists() \
-            and count_wins <= win_limit:
+            and count_wins < win_limit:
 
         # сумма выигрыша
         summa = number - 3  # формула подсчета выигрыша
@@ -336,7 +338,6 @@ def on_dice_event(message):
 # Обработчик всех остальных сообщений ( в группе отлавливаем триггеры)
 @bot.message_handler(func=lambda message: message.chat.type != 'private')
 def handle_messages(message):
-    print('chatid', message.chat.id)
     msg_normalized = ' '.join(filter(None, str(message.text).lower().split(' ')))
     allow = [-1001363709875, -1001270954422]
     if API_TOKEN != LOCAL:
@@ -345,12 +346,33 @@ def handle_messages(message):
     for trigger in Triggers.objects.all():
         if trigger.name in msg_normalized:
             if message.chat.id not in allow:
-                print('somebody')
-                print(message.chat)
-                print(message.from_user)
                 send_message(message, 'Тут нельзя)', None)
                 return
 
-            print('allowed', message.chat)
             on_dice_event(message)
             return
+
+
+@bot.message_handler(commands=['dice'])
+def dice_test(message):
+    try:
+        user = User.objects.get(pk=message.from_user.id)
+    except User.DoesNotExist:
+        user = register(message)
+
+    args = message.text.split(' ')[1:]
+    dice, chat = None, message.chat.id
+    if len(args) == 1 and args[0].isdigit():
+        dice = int(args[0])
+    if not dice:
+        dice = randint(1, 6)
+
+    if len(args) == 2 and args[1]:
+        chat = args[1]
+
+    members = bot.get_chat_members_count(chat)
+    response = f"""
+Dice: {dice}
+Members: {members}
+    """
+    send_message(message, response, None)

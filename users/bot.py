@@ -1,6 +1,6 @@
 import datetime
 from random import randint
-
+from pprint import pformat
 import telebot
 from django.db.models import Count, Sum
 from telebot import types
@@ -25,7 +25,7 @@ from .markups import *
 from django.conf import settings
 
 
-bot = DiceBot(API_TOKEN, skip_pending=True)
+bot = DiceBot(API_TOKEN, skip_pending=True, threaded=LOCAL != API_TOKEN)
 botInfo = bot.get_me()
 print('Me: ', botInfo)
 
@@ -270,13 +270,14 @@ def my_wallet(message):
 
 # проверка на blacklist или выигрыш в данном чате сегодня + расчет формулы
 def formula_calculation(user, dice, chat_id):
+    details = {}
     is_blacklisted = Exceptions.objects.filter(user=user).exists()
+    details['blacklisted'] = is_blacklisted
     if is_blacklisted:
-        return 0
+        return 0, details
 
-    today = date.today()
-    settings = Tools.objects.get(pk=1)
-    members = bot.get_chat_members_count(chat_id)
+    details['today'] = today = date.today()
+    details['members'] = members = bot.get_chat_members_count(chat_id)
 
     user_stat = DiceEvent.objects \
         .values('chat_id') \
@@ -289,9 +290,10 @@ def formula_calculation(user, dice, chat_id):
         user_won_day += aggregation['chat_sum_user']
         if aggregation['chat_id'] == chat_id:
             is_chat_win = True
-
+    details['user_won_day'] = user_won_day
+    details['is_chat_win'] = is_chat_win
     if is_chat_win:
-        return 0
+        return 0, details
 
     chat_stat = DiceEvent.objects \
         .values('chat_id') \
@@ -299,13 +301,18 @@ def formula_calculation(user, dice, chat_id):
         .annotate(chat_sum=Sum('summa'))
     chat_stat = {d['chat_id']: d['chat_sum'] for d in chat_stat}
 
-    chat_won_day = chat_stat.get(chat_id, 0)
-    total_won_day = sum(chat_stat.values())
+    details['chat_won_day'] = chat_won_day = chat_stat.get(chat_id, 0)
+    details['total_won_day'] = total_won_day = sum(chat_stat.values())
 
-    chat_size_multiplier = max(3, 1.0 + members / 10000)
-    user_limit_multiplier = 1.0 - user_won_day / settings.user_limit_day
-    chat_limit_multiplier = 1.0 - chat_won_day / settings.chat_limit_day
-    total_limit_multiplier = 1.0 - total_won_day / settings.total_limit_day
+    user_settings = Tools.objects.get(pk=1)
+    details['user_limit_day'] = user_settings.user_limit_day
+    details['chat_limit_day'] = user_settings.chat_limit_day
+    details['total_limit_day'] = user_settings.total_limit_day
+
+    details['chat_size_multiplier'] = chat_size_multiplier = max(3, 1.0 + members / 10000)
+    details['user_limit_multiplier'] = user_limit_multiplier = 1.0 - user_won_day / user_settings.user_limit_day
+    details['chat_limit_multiplier'] = chat_limit_multiplier = 1.0 - chat_won_day / user_settings.chat_limit_day
+    details['total_limit_multiplier'] = total_limit_multiplier = 1.0 - total_won_day / user_settings.total_limit_day
 
     dice_number = dice - 3
     if dice_number < 0:
@@ -313,7 +320,10 @@ def formula_calculation(user, dice, chat_id):
     if dice_number > 3:
         dice_number = 3
 
-    return dice_number * chat_size_multiplier * user_limit_multiplier * chat_limit_multiplier * total_limit_multiplier
+    details['dice'] = dice
+    details['dice_number'] = dice_number
+    reward = dice_number * chat_size_multiplier * user_limit_multiplier * chat_limit_multiplier * total_limit_multiplier
+    return reward, details
 
 
 def reply_to(message, text, markup):
@@ -365,7 +375,7 @@ def on_dice_event(message):
 
 
 # Обработчик всех остальных сообщений ( в группе отлавливаем триггеры)
-@bot.message_handler(func=lambda message: message.chat.type != 'private')
+@bot.message_handler(func=lambda message: message.chat.type != 'private' and not message.text.startswith('/'))
 def handle_messages(message):
     msg_normalized = ' '.join(filter(None, str(message.text).lower().split(' ')))
     allow = [-1001363709875, -1001270954422]
@@ -396,9 +406,12 @@ def dice_test(message):
     if not dice:
         dice = randint(1, 6)
 
-    reward = formula_calculation(user, dice, chat_id)
+    reward, details = formula_calculation(user, dice, chat_id)
     response = f"""
-    Dice: {dice}
-    Reward: {reward}
+```
+Reward: {reward}
+Details:
+{pformat(details)}
+```
 """
     send_message(message, response, None)

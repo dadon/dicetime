@@ -12,6 +12,7 @@ from mintersdk.sdk.transactions import MinterTx, MinterSendCoinTx, MinterBuyCoin
 
 
 import requests
+from telebot.types import Message
 
 from .dice import DiceBot
 from .models import *
@@ -394,21 +395,27 @@ def handle_messages(message):
 
 @bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id == 69062067)
 def dice_test(message):
+    uid = message.from_user.id
+    if message.reply_to_message:
+        uid = message.reply_to_message.from_user.id
+
     try:
-        user = User.objects.get(pk=message.from_user.id)
+        user = User.objects.get(pk=uid)
     except User.DoesNotExist:
-        user = register(message)
+        user = register(message.reply_to_message or message)
 
     args = message.text.split(' ')[1:]
     dice, chat_id = None, message.chat.id
     if len(args) == 1 and args[0].isdigit():
-        dice = int(args[0]) % 6
+        dice = int(args[0])
     if not dice:
         dice = randint(1, 6)
 
     reward, details = formula_calculation(user, dice, chat_id)
     response = f"""
+Dice testdata for [{user.username or user.first_name}](tg://user?id={user.pk})
 ```
+Dice: {dice}
 Reward: {reward}
 Details:
 {pformat(details)}

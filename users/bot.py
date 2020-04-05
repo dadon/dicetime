@@ -393,7 +393,7 @@ def handle_messages(message):
             return
 
 
-@bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id == 69062067)
+@bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id in [69062067, 144406])
 def dice_test(message):
     uid = message.from_user.id
     if message.reply_to_message:

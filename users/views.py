@@ -18,24 +18,27 @@ from .tools import log_setup
 
 log_setup(logging.DEBUG)
 
+scheduler.start()
+scheduler.print_jobs()
+
+logger = logging.getLogger('Dice')
+
 if LOCAL:
     bot.delete_webhook()
     time.sleep(1)
-    scheduler.start()
-    scheduler.print_jobs()
-    bot.polling(none_stop=True, interval=1)
+    bot.polling(none_stop=True, interval=0)
 else:
     bot.set_webhook(ORIGIN + 'tg/' + API_TOKEN)
-
 
 
 # Telegram Webhook handler
 @csrf_exempt
 def tg_webhook(request):
-    updates = [ types.Update.de_json(request.body.decode("utf-8")) ]
-    if len(updates) > 20:
+    update = types.Update.de_json(request.body.decode("utf-8"))
+    if update.message and update.message.date < bot.start_time:
+        logger.info(f'Skipping update: {request.body.decode("utf-8")}')
         return HttpResponse('OK')
-    bot.process_new_updates(updates)
+    bot.process_new_updates(update)
     return HttpResponse('OK')
 
 

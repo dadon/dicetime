@@ -12,11 +12,3 @@ urlpatterns = [
 ]
 
 log_setup(logging.DEBUG)
-
-if LOCAL:
-    bot.delete_webhook()
-    bot.polling(none_stop=True, interval=0)
-else:
-    bot.delete_webhook()
-    bot.skip_updates()
-    bot.set_webhook(ORIGIN + 'tg/' + API_TOKEN)

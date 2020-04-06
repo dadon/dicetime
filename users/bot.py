@@ -35,6 +35,7 @@ def is_group_text(msg):
 def is_private_text(msg):
     return msg.chat.type == 'private' and msg.text
 
+
 logger = logging.getLogger('Dice')
 
 bot = DiceBot(API_TOKEN, skip_pending=True, threaded=not LOCAL)

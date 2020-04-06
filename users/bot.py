@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 from decimal import Decimal
 from random import randint
 from pprint import pformat
@@ -399,6 +400,11 @@ def handle_messages(message):
 
             on_dice_event(message)
             return
+
+
+@bot.message_handler(commands=['update'], func=lambda m: m.from_user.id in settings.ADMINS)
+def dice_test(message):
+    os.system('git pull')
 
 
 @bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id in settings.ADMINS)

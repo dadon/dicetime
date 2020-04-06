@@ -20,3 +20,6 @@ class DiceBot(TeleBot):
             'reply_markup': _convert_markup(reply_markup)
         })
         return DiceMessage.de_json(message)
+
+    # def send_message(self, chatone, disable_notification=None, timeout=None):_id, text, disable_web_page_preview=None, reply_to_message_id=None, reply_markup=None,
+    #     #                  parse_mode=N

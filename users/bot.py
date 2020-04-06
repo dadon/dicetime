@@ -4,21 +4,21 @@ from decimal import Decimal
 from random import randint
 from pprint import pformat
 import telebot
+from apscheduler.schedulers.background import BackgroundScheduler
 from django.db.models import Count, Sum
 from telebot import types
 
 import mintersdk
 from mintersdk.minterapi import MinterAPI
 from mintersdk.sdk.wallet import MinterWallet
-from mintersdk.sdk.transactions import MinterTx, MinterSendCoinTx, MinterBuyCoinTx
-
+from mintersdk.sdk.transactions import MinterTx, MinterSendCoinTx, MinterBuyCoinTx, MinterMultiSendCoinTx
 
 import requests
 from telebot.types import Message
 
 from .dice import DiceBot
 from .models import *
-from dice_time.settings import API_TOKEN, ORIGIN, LOCAL, ALLOWED_GROUPS
+from dice_time.settings import API_TOKEN,  ALLOWED_GROUPS, LOCAL
 import re
 
 import time
@@ -36,7 +36,7 @@ def is_private_text(msg):
     return msg.chat.type == 'private' and msg.text
 
 logger = logging.getLogger('Dice')
-
+scheduler = BackgroundScheduler()
 bot = DiceBot(API_TOKEN, skip_pending=True, threaded=not LOCAL)
 botInfo = bot.get_me()
 logger.info(f'Me: {botInfo}')
@@ -45,7 +45,24 @@ logger.info(f'Me: {botInfo}')
 API = MinterAPI(settings.NODE_API_URL, **settings.TIMEOUTS)
 
 
+def multisend(wallet_from, w_dict, gas_coin='BIP', payload=''):
+    for send_rec in w_dict:
+        logger.info(f"Sending: {send_rec['value']} {send_rec['coin']} -> {send_rec['to']}")
+    if LOCAL:
+        return
+
+    nonce = API.get_nonce(wallet_from['address'])
+    tx = MinterMultiSendCoinTx(w_dict, nonce=nonce, gas_coin=gas_coin, payload=payload)
+    tx.sign(wallet_from['private_key'])
+    r = API.send_transaction(tx.signed_tx)
+    logger.info(f'Send TX response:\n{r}')
+    return tx
+
+
 def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
+    logger.info(f'Sending: {value} {coin} -> {wallet_to}')
+    if LOCAL:
+        return
     nonce = API.get_nonce(wallet_from['address'])
     send_tx = MinterSendCoinTx(
         coin,
@@ -55,125 +72,115 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
         gas_coin=gas_coin,
         payload=payload)
     send_tx.sign(wallet_from['private_key'])
-    logger.info(f'Sending: {value} {coin} -> {wallet_to}')
-    if not LOCAL:
-        r = API.send_transaction(send_tx.signed_tx)
-        logger.info(f'Send TX response:\n{r}')
+    r = API.send_transaction(send_tx.signed_tx)
+    logger.info(f'Send TX response:\n{r}')
     return send_tx
 
 
-def send_cash(event):
+@scheduler.scheduled_job('interval', minutes=1)
+def make_multisend_list_and_pay():
+    LIMIT=75
+    multisend_list = []
+    gifts = Payment.objects.filter(is_payed=False)[:LIMIT]
+
+    if not gifts:
+        logger.info(f'No events to pay')
+        return
+
+    settings = Tools.objects.get(pk=1)
+    wallet_from = MinterWallet.create(mnemonic=settings.join)
+
+    if len(gifts) == 1:
+        g = gifts[0]
+        send(wallet_from, g.to, g.coin, g.amount, gas_coin=g.coin, payload=settings.payload)
+        g.is_payed = True
+        g.save()
+        return
+
+    for g in gifts:
+        multisend_list.append({'coin': g.coin, 'to': g.to, 'value': g.amount})
+        g.is_payed = True
+        g.save()
+
+    multisend(wallet_from=wallet_from, w_dict=multisend_list, gas_coin=settings.coin, payload=settings.payload)
+            
+
+def set_unbond_obj(event):
     if not event.summa:
         return
     event.is_payed=True
     event.save()
-    wallet_from = MinterWallet.create(
-        mnemonic=Tools.objects.get(pk=1).join)
     wallet_to = MinterWallets.objects.get(user=event.user).number
     coin = str(Tools.objects.get(pk=1).coin)
-    payload = str(Tools.objects.get(pk=1).payload)
-
-    send(
-        wallet_from=wallet_from,
-        wallet_to=wallet_to,
+    Payment.objects.create(
+        user=event.user,
+        event=event,
+        to=wallet_to,
         coin=coin,
-        value=event.summa,
-        gas_coin=coin,
-        payload=payload)
+        amount=event.summa)
     
 
-
-def send_message(message, text, markup):
+def send_message(chat_id, text, markup):
+    chat_id = chat_id if isinstance(chat_id, int) else chat_id.chat.id
     bot.send_message(
-        message.chat.id,
+        chat_id,
         text=text,
         parse_mode='markdown',
         reply_markup=markup,
         disable_web_page_preview=True
     )
 
-def return_text(user,pk):
-    if user.language.pk==1:
-        text=Texts.objects.get(pk=pk).text_ru
+
+def get_localized_choice(user, pk=None, ru_text='', en_text=''):
+    if user.language.pk == 1:
+        text = Texts.objects.get(pk=pk).text_ru if pk else ru_text
     else:
-        text=Texts.objects.get(pk=pk).text_eng
+        text = Texts.objects.get(pk=pk).text_eng if pk else en_text
     return text
 
-def check_event(user, event_id, message):
-    if DiceEvent.objects.filter(pk=event_id, is_win=True).exists():
-        event = DiceEvent.objects.get(pk=event_id)
-        ms=Tools.objects.get(pk=1).ms
 
-        if user.language.pk == 1:
-            markup = HOME_MARKUP_RU
-        else:
-            markup = HOME_MARKUP_ENG
+def notify_win(user, event, coin):
+    chat_id = user.id
+    send_message(chat_id, f'Начислено + {event.summa} {coin}', None)
+    event.is_notified = True
+    event.save()
+    # ms = Tools.objects.get(pk=1).ms
+    # markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
+    # wallet = MinterWallets.objects.get(user=user)
+    # text = get_localized_choice(user, 15)
+    # send_message(chat_id, text.format(user_name=user.first_name), None)
+    # time.sleep(ms)
+    # text = get_localized_choice(user, 10)
+    # send_message(message, text.format(user_wallet_address=wallet.number), None)
 
-        if event.user == user:
+    # text = get_localized_choice(user, 11)
+    # send_message(chat_id, text, None)
+    # time.sleep(ms)
+    # text = get_localized_choice(user, 12)
+    # send_message(message, text.format(user_seed_phrase=wallet.mnemonic), None)
 
-            wallet = MinterWallets.objects.get(user=user)
-            text=return_text(user,15)
-            send_message(message,text.format(user_name=user.first_name),None)
-            time.sleep(ms)
+    # text = get_localized_choice(user, 1)
+    # document = Texts.objects.get(pk=1).attachment
+    # bot.send_document(chat_id, document, caption=text)
+    # time.sleep(ms)
+
+    # text = get_localized_choice(user, 14)
+    # send_message(chat_id, text, markup)
+    # time.sleep(ms)
+
+
+def check_pending_notification(user, message):
+    missed_notifies = DiceEvent.objects.filter(user=user, is_win=True, is_notified=False)
+    count = len(missed_notifies)
+    if not count:
+        return
+    markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
+    for event in missed_notifies:
+        event.is_notified = True
+    missed_notifies.update(is_notified=True)
+    send_message(message, 'Вы не заходили в бота, разблокировали его или мы забыли прислать вам уведомление. '
+                          'Текста на этот случай нет, но за это время вы выиграли {missed} раз'.format(missed=count), markup)
             
-            
-            text=return_text(user,10)
-            send_message(message,text.format(user_wallet_address=wallet.number),None)
-            time.sleep(ms)
-
-            text=return_text(user,11)
-            send_message(message,text,None)
-            time.sleep(ms)
-
-            text=return_text(user,12)
-            send_message(message,text.format(user_seed_phrase=wallet.mnemonic),None)
-            time.sleep(ms)
-
-            text=return_text(user,1)
-            document=Texts.objects.get(pk=1).attachment
-            bot.send_document(message.chat.id,document,caption=text)
-            time.sleep(ms)
-
-            text=return_text(user,14)
-            send_message(message,text,markup)
-            time.sleep(ms)
-
-            if event.is_payed==False:
-                send_cash(event)
-
-        else:
-            wallet = MinterWallets.objects.get(user=user)
-            text=return_text(user,8)
-            send_message(message,text,None)
-            time.sleep(ms)
-
-            text=return_text(user,9)
-            send_message(message,text,None)
-            time.sleep(ms)
-           
-            
-            text=return_text(user,10)
-            send_message(message,text.format(user_wallet_address=wallet.number),None)
-            time.sleep(ms)
-
-            text=return_text(user,11)
-            send_message(message,text,None)
-            time.sleep(ms)
-
-
-            text=return_text(user,12)
-            send_message(message,text.format(user_seed_phrase=wallet.mnemonic),None)
-            time.sleep(ms)
-
-            text=return_text(user,1)
-            document=Texts.objects.get(pk=1).attachment
-            bot.send_document(message.chat.id,document,caption=text)
-            time.sleep(ms)
-
-            text=return_text(user,14)
-            send_message(message,text,markup)
-            time.sleep(ms)
-
 
 def wallet_balance(wallet):
     URL_wallet = f'https://explorer-api.minter.network/api/v1/addresses/' + \
@@ -186,9 +193,8 @@ def wallet_balance(wallet):
             amount = float(b['amount'])
     return amount
 
+
 # регистрация юзера
-
-
 def register(message):
     user = User.objects.create(
         id=message.from_user.id,
@@ -207,24 +213,21 @@ def register(message):
 # Обработчик команды /start
 @bot.message_handler(commands=['start'], func=is_private_text)
 def command_start(message):
-    logger.info('########### start')
-    referal_id = int(message.text[12:] or -1)
-
     # Если пользователь уже зарегистрирован
-    text=Texts.objects.get(pk=2).text_ru
     if User.objects.filter(pk=message.chat.id).exists():
         user = User.objects.get(pk=message.chat.id)
-        if referal_id > -1:
-            check_event(user, referal_id, message)
+        check_pending_notification(user, message)
+
     # Иначе регистрируем пользователя
     else:
         user = register(message)
-        send_message(message, text,language_markup)
+        text = get_localized_choice(user, pk=2)
+        send_message(message, text, language_markup)
 
     if not MinterWallets.objects.filter(user=user).exists():
+        logger.info('############## This should not be printed !!!!!!!!!!!!!!! NO wallet check')
         wallet = MinterWallet.create()
-        wal=MinterWallets.objects.create(user=user,number=wallet['address'],mnemonic=wallet['mnemonic'])
-
+        MinterWallets.objects.create(user=user, number=wallet['address'], mnemonic=wallet['mnemonic'])
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('languag.id.'))
@@ -234,50 +237,31 @@ def choice_langeuage(call):
     langeuage=Language.objects.get(pk=flag)
     user.language=langeuage
     user.save()
-    if user.language.pk==1:
-        text=Texts.objects.get(pk=1).text_ru
+
+    if flag == 1:
+        text = Texts.objects.get(pk=1).text_ru
         markup = HOME_MARKUP_RU
     else:
-        text=Texts.objects.get(pk=1).text_eng
+        text = Texts.objects.get(pk=1).text_eng
         markup = HOME_MARKUP_ENG
     send_message(call.message, text, markup)
-    document=Texts.objects.get(pk=1).attachment
-    bot.send_document(call.message.chat.id,document)
+
+    text = get_localized_choice(user, 1)
+    document = Texts.objects.get(pk=1).attachment
+    bot.send_document(call.message.chat.id, document, caption=text)
 
 
 # Обработка кнопки ⚠️ Правила
 @bot.message_handler(func=lambda message: message.text == '⚠️ Правила' or message.text == '⚠️ Rules')
 def rooles(message):
     user = User.objects.get(pk=message.chat.id)
-    if user.language.pk==1:
-        text=Texts.objects.get(pk=4).text_ru
-    else:
-        text=Texts.objects.get(pk=4).text_eng
+    text = get_localized_choice(user, pk=4)
     send_message(
         message,
         text.format(
             user_name=user.first_name,
-            coin_ticker=str(
-                Tools.objects.get(
-                    pk=1).coin)),
+            coin_ticker=Tools.objects.get(pk=1).coin),
         None)
-
-
-# Обработка кнопки 💰 Мой Кошелёк
-@bot.message_handler(func=lambda message: message.text == '💰 Мой Кошелёк' or message.text == '💰 My wallet')
-def my_wallet(message):
-    user = User.objects.get(pk=message.chat.id)
-    wallet = MinterWallets.objects.get(user=user)
-    amount = wallet_balance(wallet)
-    if user.language.pk==1:
-        text=Texts.objects.get(pk=16).text_ru
-    else:
-        text=Texts.objects.get(pk=16).text_eng
-    send_message(
-        message,
-        text.format(
-            user_wallet_address=wallet.number,
-            user_seed_phrase=wallet.mnemonic, amount=amount), None)
 
 
 # проверка на blacklist или выигрыш в данном чате сегодня + расчет формулы
@@ -341,7 +325,7 @@ def formula_calculation(user, dice, chat_id):
 
 
 def reply_to(message, text, markup):
-    mes = bot.reply_to(message=message, text=text, reply_markup=markup)
+    mes = bot.reply_to(message=message, text=text, reply_markup=markup,parse_mode='markdown')
     return mes
 
 
@@ -353,42 +337,32 @@ def on_dice_event(message):
         user = User.objects.get(pk=message.from_user.id)
     else:
         user = register(message)
+
+    reward, _ = formula_calculation(user, dice_msg.dice_value, message.chat.id)
+    is_win = False  # bool(reward)
     event = DiceEvent.objects.create(
         user=user,
         chat_id=message.chat.id,
         title_chat=message.chat.title,
-        link_chat=message.chat.username)
+        link_chat=message.chat.username,
+        summa=reward,
+        is_win=is_win)
+    if reward:
+        set_unbond_obj(event)
+        time.sleep(1)
+        notify_win(user, event, coin=Tools.objects.get(pk=1).coin)
 
-    reward, _ = formula_calculation(user, dice_msg.dice_value, message.chat.id)
-    if not reward:
-        return
+        url = f'https://telegram.me/{botInfo.username}'
+        take_money_markup = types.InlineKeyboardMarkup(row_width=1)
+        text_markup = get_localized_choice(user, pk=5)
+        take_money_markup.add(types.InlineKeyboardButton(text_markup, url=url))
 
-    url = 'https://telegram.me/' + str(botInfo.username) + '?start=event' + \
-          str(event.id)
-    take_money_markup = types.InlineKeyboardMarkup(row_width=1)
-    if user.language.pk == 1:
-        text_markup = Texts.objects.get(pk=5).text_ru
-    else:
-        text_markup = Texts.objects.get(pk=5).text_eng
+        text = get_localized_choice(user, pk=7)
+        reply_to(dice_msg, text.format(X=reward, coin_ticker=str(
+            Tools.objects.get(pk=1).coin)), take_money_markup)
+        logger.info('Dice event ok.')
 
-    take_money_markup.add(
-        types.InlineKeyboardButton(
-            str(text_markup), url=url))
-
-    event.summa = reward
-    event.is_win = True
-    event.save()
-
-    if user.language.pk == 1:
-        text = Texts.objects.get(pk=7).text_ru
-    else:
-        text = Texts.objects.get(pk=7).text_eng
-
-    reply_to(dice_msg, text.format(X=reward, coin_ticker=str(
-        Tools.objects.get(pk=1).coin)), take_money_markup)
-
-
-# Обработчик всех остальных сообщений ( в группе отлавливаем триггеры)
+# Обработчик всех остальных сообщений (в группе отлавливаем триггеры)
 @bot.message_handler(func=is_group_text)
 def handle_messages(message):
     msg_normalized = ' '.join(filter(None, str(message.text).lower().split(' ')))
@@ -397,6 +371,29 @@ def handle_messages(message):
         if trigger.name in msg_normalized:
             if ALLOWED_GROUPS and message.chat.id not in ALLOWED_GROUPS:
                 send_message(message, 'Тут нельзя)', None)
+                return
+
+            # проверяем  положен ли выигрыш
+            today = date.today()
+            user = User.objects.get(pk=message.from_user.id)
+
+            user_won_this_chat_today = DiceEvent.objects.filter(
+                user=user, chat_id=message.chat.id, is_win=True, date__date=today).exists()
+            if user_won_this_chat_today:
+                reply_to(message, 'В этом чате вы уже не можете сегодня играть.'
+                                  '\nНе нужно спамить чат, мой уважаемый друг', None)
+                return
+
+            user_stat = DiceEvent.objects \
+                .values('user') \
+                .filter(user=user, date__date=today, is_win=True) \
+                .annotate(sum_user=Sum('summa'))
+
+            total_user_reward = float(user_stat[0]['sum_user']) if user_stat else 0
+            settings = Tools.objects.get(pk=1)
+            if total_user_reward >= settings.user_limit_day:
+                reply_to(message, 'Сегодня вы не можете больше играть.'
+                                  '\nНе нужно спамить чат, мой уважаемый друг', None)
                 return
 
             on_dice_event(message)
@@ -409,9 +406,9 @@ def dice_test(message):
     if message.reply_to_message:
         uid = message.reply_to_message.from_user.id
 
-    try:
+    if User.objects.filter(pk=uid).exists():
         user = User.objects.get(pk=uid)
-    except User.DoesNotExist:
+    else:
         user = register(message.reply_to_message or message)
 
     args = message.text.split(' ')[1:]
@@ -425,10 +422,25 @@ def dice_test(message):
     response = f"""
 Dice testdata for [{user.username or user.first_name}](tg://user?id={user.pk})
 ```
-Dice: {dice}
-Reward: {reward}
+Dice: {dice!s}
+Reward: {reward!s}
 Details:
 {pformat(details)}
 ```
 """
     send_message(message, response, None)
+
+
+# Обработка кнопки 💰 Мой Кошелёк
+@bot.message_handler(func=lambda message: message.text == '💰 Мой Кошелёк' or message.text == '💰 My wallet')
+def my_wallet(message):
+    user = User.objects.get(pk=message.chat.id)
+    wallet = MinterWallets.objects.get(user=user)
+    amount = wallet_balance(wallet)
+    text = get_localized_choice(user, pk=16)
+    wallet_markup = get_localized_choice(user, ru_text=wallet_markup_ru, en_text=wallet_markup_eng)
+    send_message(
+        message,
+        text.format(
+            user_wallet_address=wallet.number,
+            user_seed_phrase=wallet.mnemonic, amount=amount), wallet_markup)

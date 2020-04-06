@@ -132,7 +132,11 @@ class DiceEvent(models.Model):
         verbose_name='Линк на чат')
     
     is_payed = models.BooleanField(
-        verbose_name='Оплачено?',
+        verbose_name='Отправлено на выплату?',
+        default=False)
+
+    is_notified = models.BooleanField(
+        verbose_name='Отправлено на выплату?',
         default=False)
 
     class Meta:
@@ -154,6 +158,48 @@ class Exceptions(models.Model):
     class Meta:
         verbose_name = 'Бан-лист'
         verbose_name_plural = 'Бан-лист'
+
+
+class Payment(models.Model):
+    user = models.ForeignKey(
+        User,
+        verbose_name='Пользователь ТГ',
+        on_delete=models.CASCADE)
+
+    event = models.ForeignKey(
+        DiceEvent,
+        null=True,
+        verbose_name='Бросок кубика',
+        on_delete=models.SET_NULL)
+
+    to = models.CharField(
+        max_length=85,
+        verbose_name='Номер кошелька')
+
+    amount = models.DecimalField(
+        decimal_places=6, max_digits=24,
+        verbose_name='сумма на выплату',
+        default=Decimal(0))
+
+    coin = models.CharField(
+        verbose_name='Монета,в к-ой идет выплата',
+        default='-',
+        max_length=10)
+    
+    is_payed = models.BooleanField(
+        verbose_name='Оплачено?',
+        default=False)
+
+    is_notified = models.BooleanField(
+        verbose_name='Прислано уведомление об оплате',
+        default=False)
+    
+    def __str__(self):
+        return f' {self.user}'
+
+    class Meta:
+        verbose_name = 'Платеж'
+        verbose_name_plural = 'Платеж'
 
 
 class Texts(models.Model):

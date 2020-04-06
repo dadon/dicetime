@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.contrib.postgres.fields import JSONField
 from django.db import models
 import datetime
 from datetime import date
@@ -19,7 +20,6 @@ class Language(models.Model):
 class User(models.Model):
 
     id = models.BigIntegerField(verbose_name='ID в Телеграм', primary_key=True)
-    is_bot = models.BooleanField(verbose_name='Статус бота', default=False)
     first_name = models.CharField(verbose_name='Имя', max_length=255,blank=True,null=True)
     last_name = models.CharField(verbose_name='Фамилия', max_length=255,blank=True,null=True)
     username = models.CharField(
@@ -35,6 +35,12 @@ class User(models.Model):
     date_reg = models.DateField(
         auto_now_add=True,
         verbose_name='Дата появления в боте')
+    warned_today = models.SmallIntegerField(
+        verbose_name='Сколько раз предупрежден о лимитах (на сегодня)',
+        default=0)
+    warned_chats = JSONField(
+        verbose_name='Сколько раз предупрежден о лимитах (чаты)',
+        default={})
 
     def __str__(self):
         return '{name} #{id}'.format(

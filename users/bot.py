@@ -351,7 +351,7 @@ def on_dice_event(message):
         is_win=is_win)
     if reward:
         set_unbond_obj(event)
-        time.sleep(1)
+        time.sleep(2)
         notify_win(user, event, coin=Tools.objects.get(pk=1).coin)
 
         url = f'https://telegram.me/{botInfo.username}'
@@ -381,9 +381,12 @@ def handle_messages(message):
 
             user_won_this_chat_today = DiceEvent.objects.filter(
                 user=user, chat_id=message.chat.id, is_win=True, date__date=today).exists()
-            if user_won_this_chat_today:
+            warned_here = user.warned_chats.setdefault(message.chat.id, 0)
+            if user_won_this_chat_today and warned_here >= 2:
                 reply_to(message, 'В этом чате вы уже не можете сегодня играть.'
                                   '\nНе нужно спамить чат, мой уважаемый друг', None)
+                user.warned_chats[message.chat.id] += 1
+                user.save()
                 return
 
             user_stat = DiceEvent.objects \
@@ -393,9 +396,11 @@ def handle_messages(message):
 
             total_user_reward = float(user_stat[0]['sum_user']) if user_stat else 0
             settings = Tools.objects.get(pk=1)
-            if total_user_reward >= settings.user_limit_day:
+            if total_user_reward >= settings.user_limit_day and user.warned_today >= 2:
                 reply_to(message, 'Сегодня вы не можете больше играть.'
                                   '\nНе нужно спамить чат, мой уважаемый друг', None)
+                user.warned_today += 1
+                user.save()
                 return
 
             on_dice_event(message)

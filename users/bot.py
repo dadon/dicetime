@@ -340,7 +340,7 @@ def on_dice_event(message):
         user = register(message)
 
     reward, _ = formula_calculation(user, dice_msg.dice_value, message.chat.id)
-    is_win = False  # bool(reward)
+    is_win = bool(reward)
     event = DiceEvent.objects.create(
         user=user,
         chat_id=message.chat.id,

@@ -10,25 +10,29 @@ from django.contrib.auth.decorators import permission_required
 from dice_time.settings import API_TOKEN, LOCAL, ORIGIN
 from .bot import bot, scheduler
 from dal import autocomplete
-from users.models import User
+from users.models import User, Service
 
 from django.shortcuts import HttpResponse
 
 from .tools import log_setup
 
 log_setup(logging.DEBUG)
-
-scheduler.start()
-scheduler.print_jobs()
-
 logger = logging.getLogger('Dice')
 
 if LOCAL:
     bot.delete_webhook()
-    time.sleep(1)
     bot.polling(none_stop=True, interval=0)
 else:
+    logger.info(bot.get_webhook_info())
+    logger.info('----------------')
     bot.set_webhook(ORIGIN + 'tg/' + API_TOKEN)
+
+
+if Service.objects.get(pk=1).scheduler_running:
+    scheduler.start()
+    logger.info('------------ JOBS')
+    scheduler.print_jobs()
+    logger.info('------------ JOBS')
 
 
 # Telegram Webhook handler
@@ -38,7 +42,7 @@ def tg_webhook(request):
     if update.message and update.message.date < bot.start_time:
         logger.info(f'Skipping update: {request.body.decode("utf-8")}')
         return HttpResponse('OK')
-    bot.process_new_updates(update)
+    bot.process_new_updates([update])
     return HttpResponse('OK')
 
 

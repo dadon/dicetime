@@ -20,6 +20,8 @@ if LOCAL:
     bot.delete_webhook()
     scheduler.add_job(bot.polling, kwargs={'none_stop': True, 'interval': 0})
 else:
-    bot.delete_webhook()
-    bot.skip_updates()
+    wh = bot.get_webhook_info()
+    if wh.pending_update_count:
+        bot.delete_webhook()
+        bot.skip_updates()
     bot.set_webhook(ORIGIN + 'tg/' + API_TOKEN)

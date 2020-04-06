@@ -32,7 +32,10 @@ else:
 # Telegram Webhook handler
 @csrf_exempt
 def tg_webhook(request):
-    bot.process_new_updates([ types.Update.de_json(request.body.decode("utf-8")) ])
+    updates = [ types.Update.de_json(request.body.decode("utf-8")) ]
+    if len(updates) > 20:
+        return HttpResponse('OK')
+    bot.process_new_updates(updates)
     return HttpResponse('OK')
 
 

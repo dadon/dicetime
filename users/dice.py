@@ -21,5 +21,7 @@ class DiceBot(TeleBot):
         })
         return DiceMessage.de_json(message)
 
+    def skip_updates(self):
+        pass
     # def send_message(self, chatone, disable_notification=None, timeout=None):_id, text, disable_web_page_preview=None, reply_to_message_id=None, reply_markup=None,
     #     #                  parse_mode=N

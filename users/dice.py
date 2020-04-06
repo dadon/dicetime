@@ -26,3 +26,14 @@ class DiceBot(TeleBot):
             'reply_markup': _convert_markup(reply_markup)
         })
         return DiceMessage.de_json(message)
+
+    def skip_updates(self):
+        total = 0
+        updates = self.get_updates(offset=self.last_update_id, timeout=1)
+        while updates:
+            total += len(updates)
+            for update in updates:
+                if update.update_id > self.last_update_id:
+                    self.last_update_id = update.update_id
+            updates = self.get_updates(offset=self.last_update_id + 1, timeout=1)
+        return total

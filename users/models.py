@@ -5,10 +5,6 @@ import datetime
 from datetime import date
 
 
-class Service(models.Model):
-    scheduler_running = models.BooleanField(verbose_name='Фоновые процессы включены', default=False)
-
-
 class Language(models.Model):
     name = models.CharField(max_length=30, verbose_name='Название языка')
 

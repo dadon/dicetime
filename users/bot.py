@@ -4,7 +4,6 @@ from decimal import Decimal
 from random import randint
 from pprint import pformat
 import telebot
-from apscheduler.schedulers.background import BackgroundScheduler
 from django.db.models import Count, Sum
 from telebot import types
 
@@ -16,6 +15,7 @@ from mintersdk.sdk.transactions import MinterTx, MinterSendCoinTx, MinterBuyCoin
 import requests
 from telebot.types import Message
 
+from dice_time.wsgi import scheduler
 from .dice import DiceBot
 from .models import *
 from dice_time.settings import API_TOKEN,  ALLOWED_GROUPS, LOCAL
@@ -36,7 +36,7 @@ def is_private_text(msg):
     return msg.chat.type == 'private' and msg.text
 
 logger = logging.getLogger('Dice')
-scheduler = BackgroundScheduler()
+
 bot = DiceBot(API_TOKEN, skip_pending=True, threaded=not LOCAL)
 botInfo = bot.get_me()
 logger.info(f'Me: {botInfo}')

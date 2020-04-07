@@ -16,7 +16,7 @@ from mintersdk.sdk.transactions import MinterTx, MinterSendCoinTx, MinterBuyCoin
 import requests
 from telebot.types import Message
 
-from dice_time.wsgi import scheduler
+from . import scheduler
 from .dice import DiceBot
 from .models import *
 from dice_time.settings import API_TOKEN,  ALLOWED_GROUPS, LOCAL
@@ -79,7 +79,7 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
     return send_tx
 
 
-@scheduler.scheduled_job('interval', minutes=1)
+@scheduler.scheduler.scheduled_job('interval', minutes=1)
 def make_multisend_list_and_pay():
     LIMIT=75
     multisend_list = []
@@ -381,11 +381,13 @@ def handle_messages(message):
 
             user_won_this_chat_today = DiceEvent.objects.filter(
                 user=user, chat_id=message.chat.id, is_win=True, date__date=today).exists()
-            warned_here = user.warned_chats.setdefault(message.chat.id, 0)
+
+            user.today_state['warned_chats'] = {}
+            warned_here = user.today_state['warned_chats'].setdefault(message.chat.id, 0)
             if user_won_this_chat_today and warned_here >= 2:
                 reply_to(message, 'В этом чате вы уже не можете сегодня играть.'
                                   '\nНе нужно спамить чат, мой уважаемый друг', None)
-                user.warned_chats[message.chat.id] += 1
+                user.today_state['warned_chats'][message.chat.id] += 1
                 user.save()
                 return
 

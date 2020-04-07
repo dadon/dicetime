@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.contrib.postgres.fields import JSONField
+from .fields import JSONField
 from django.db import models
 import datetime
 from datetime import date
@@ -35,12 +35,9 @@ class User(models.Model):
     date_reg = models.DateField(
         auto_now_add=True,
         verbose_name='Дата появления в боте')
-    warned_today = models.SmallIntegerField(
-        verbose_name='Сколько раз предупрежден о лимитах (на сегодня)',
-        default=0)
-    warned_chats = JSONField(
-        verbose_name='Сколько раз предупрежден о лимитах (чаты)',
-        default={})
+    today_state = JSONField(
+        verbose_name='Состояние юзера сегодня',
+        default=dict)
 
     def __str__(self):
         return '{name} #{id}'.format(

@@ -444,7 +444,7 @@ def my_wallet(message):
     wallet = MinterWallets.objects.get(user=user)
     amount = wallet_balance(wallet)
     text = get_localized_choice(user, pk=16)
-    wallet_markup = get_localized_choice(user, ru_text=wallet_markup_ru, en_text=wallet_markup_eng)
+    wallet_markup = None # get_localized_choice(user, ru_text=wallet_markup_ru, en_text=wallet_markup_eng)
     send_message(
         message,
         text.format(

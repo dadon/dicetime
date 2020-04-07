@@ -26,7 +26,7 @@ class UsersConfig(AppConfig):
     name = 'users'
 
     def ready(self):
-        if not 'manage.py' in sys.argv:
+        if not 'manage.py' in sys.argv or 'runserver' in sys.argv:
             from . import scheduler
             scheduler.scheduler.add_job(bot_run)
             scheduler.start()

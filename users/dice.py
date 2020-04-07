@@ -1,8 +1,13 @@
+import logging
+import time
 from datetime import datetime
 
 from telebot import apihelper, TeleBot
-from telebot.apihelper import _convert_markup
+from telebot.apihelper import _convert_markup, ApiException
 from telebot.types import Message
+
+
+logger = logging.getLogger('Dice')
 
 
 class DiceMessage(Message):
@@ -37,3 +42,17 @@ class DiceBot(TeleBot):
                     self.last_update_id = update.update_id
             updates = self.get_updates(offset=self.last_update_id + 1, timeout=1)
         return total
+
+    def send_message(self, *args, **kwargs):
+        for i in range(3):
+            try:
+                super().send_message(*args, **kwargs)
+            except ApiException as api_exc:
+                result = api_exc.result
+                result = result.json()
+                logger.info(result)
+                if result['error_code'] == 429:
+                    logger.info('429 error. sleeping')
+                    time.sleep(result['parameters']['retry_after'])
+                else:
+                    time.sleep(1)

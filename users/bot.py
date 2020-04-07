@@ -187,7 +187,6 @@ def wallet_balance(wallet):
 def register(message):
     user = User.objects.create(
         id=message.from_user.id,
-        is_bot=message.from_user.is_bot,
         last_name=message.from_user.last_name,
         first_name=message.from_user.first_name,
         username=message.from_user.username

@@ -382,13 +382,15 @@ def handle_messages(message):
             user_won_this_chat_today = DiceEvent.objects.filter(
                 user=user, chat_id=message.chat.id, is_win=True, date__date=today).exists()
 
-            user.today_state['warned_chats'] = {}
-            warned_here = user.today_state['warned_chats'].setdefault(message.chat.id, 0)
-            if user_won_this_chat_today and warned_here >= 2:
+            user.today_state.setdefault('warned_chats', {})
+            warned_here = user.today_state['warned_chats'].setdefault(str(message.chat.id), 0)
+            if user_won_this_chat_today and warned_here < 2:
                 reply_to(message, 'В этом чате вы уже не можете сегодня играть.'
                                   '\nНе нужно спамить чат, мой уважаемый друг', None)
-                user.today_state['warned_chats'][message.chat.id] += 1
+                user.today_state['warned_chats'][str(message.chat.id)] += 1
                 user.save()
+                return
+            if user_won_this_chat_today and warned_here >= 2:
                 return
 
             user_stat = DiceEvent.objects \
@@ -398,11 +400,14 @@ def handle_messages(message):
 
             total_user_reward = float(user_stat[0]['sum_user']) if user_stat else 0
             settings = Tools.objects.get(pk=1)
-            if total_user_reward >= settings.user_limit_day and user.warned_today >= 2:
+            warned_today = user.today_state.setdefault('warned_today', 0)
+            if total_user_reward >= settings.user_limit_day and warned_today < 2:
                 reply_to(message, 'Сегодня вы не можете больше играть.'
                                   '\nНе нужно спамить чат, мой уважаемый друг', None)
-                user.warned_today += 1
+                user.today_state['warned_today'] += 1
                 user.save()
+                return
+            if total_user_reward >= settings.user_limit_day and warned_today >= 2:
                 return
 
             on_dice_event(message)

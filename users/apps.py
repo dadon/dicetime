@@ -3,13 +3,14 @@ import logging
 from django.apps import AppConfig
 from dice_time.settings import LOCAL, ORIGIN, API_TOKEN
 
-logger = logging.getLogger('Dice')
+logger = logging.getLogger()
 
 
 def bot_run():
     from users.bot import bot
 
     if LOCAL:
+        logger.info('---------- called')
         bot.delete_webhook()
         bot.polling(none_stop=True, interval=0)
     else:

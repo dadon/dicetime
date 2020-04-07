@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from django.apps import AppConfig
 from dice_time.settings import LOCAL, ORIGIN, API_TOKEN
@@ -25,6 +26,7 @@ class UsersConfig(AppConfig):
     name = 'users'
 
     def ready(self):
-        from . import scheduler
-        scheduler.scheduler.add_job(bot_run)
-        scheduler.start()
+        if not 'manage.py' in sys.argv:
+            from . import scheduler
+            scheduler.scheduler.add_job(bot_run)
+            scheduler.start()

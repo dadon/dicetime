@@ -1,32 +1,27 @@
-import datetime
 import logging
 import os
-from decimal import Decimal
 from random import randint
 from pprint import pformat
-import telebot
-from django.db.models import Count, Sum
-from telebot import types
+from django.db.models import Sum
 
-import mintersdk
 from mintersdk.minterapi import MinterAPI
 from mintersdk.sdk.wallet import MinterWallet
-from mintersdk.sdk.transactions import MinterTx, MinterSendCoinTx, MinterBuyCoinTx, MinterMultiSendCoinTx
+from mintersdk.sdk.transactions import MinterSendCoinTx, MinterMultiSendCoinTx
 
 import requests
-from telebot.types import Message
 
 from . import scheduler
 from .dice import DiceBot
 from .models import *
 from dice_time.settings import API_TOKEN,  ALLOWED_GROUPS, LOCAL
-import re
 
 import time
 
 from .markups import *
 
 from django.conf import settings
+
+from .utils import get_localized_choice
 
 
 def is_group_text(msg):
@@ -131,14 +126,6 @@ def send_message(chat_id, text, markup):
         reply_markup=markup,
         disable_web_page_preview=True
     )
-
-
-def get_localized_choice(user, pk=None, ru_text='', en_text=''):
-    if user.language.pk == 1:
-        text = Texts.objects.get(pk=pk).text_ru if pk else ru_text
-    else:
-        text = Texts.objects.get(pk=pk).text_eng if pk else en_text
-    return text
 
 
 def notify_win(user, event, coin):
@@ -254,16 +241,17 @@ def choice_langeuage(call):
 
 
 # Обработка кнопки ⚠️ Правила
-@bot.message_handler(func=lambda message: message.text == '⚠️ Правила' or message.text == '⚠️ Rules')
+@bot.message_handler(func=lambda message: message.text == RULES_BTN_RU or message.text == RULES_BTN_EN)
 def rooles(message):
     user = User.objects.get(pk=message.chat.id)
     text = get_localized_choice(user, pk=4)
+    markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
     send_message(
         message,
         text.format(
             user_name=user.first_name,
             coin_ticker=Tools.objects.get(pk=1).coin),
-        None)
+        markup)
 
 
 # проверка на blacklist или выигрыш в данном чате сегодня + расчет формулы
@@ -384,13 +372,13 @@ def handle_messages(message):
 
             user.today_state.setdefault('warned_chats', {})
             warned_here = user.today_state['warned_chats'].setdefault(str(message.chat.id), 0)
-            if user_won_this_chat_today and warned_here < 2:
+            if user_won_this_chat_today and warned_here < 1:
                 reply_to(message, 'В этом чате вы уже не можете сегодня играть.'
-                                  '\nНе нужно спамить чат, мой уважаемый друг', None)
+                                  '\nНе нужно спамить чат, мой уважаемый друг', another_chat_markup(botInfo.username))
                 user.today_state['warned_chats'][str(message.chat.id)] += 1
                 user.save()
                 return
-            if user_won_this_chat_today and warned_here >= 2:
+            if user_won_this_chat_today and warned_here >= 1:
                 return
 
             user_stat = DiceEvent.objects \
@@ -401,13 +389,13 @@ def handle_messages(message):
             total_user_reward = float(user_stat[0]['sum_user']) if user_stat else 0
             settings = Tools.objects.get(pk=1)
             warned_today = user.today_state.setdefault('warned_today', 0)
-            if total_user_reward >= settings.user_limit_day and warned_today < 2:
+            if total_user_reward >= settings.user_limit_day and warned_today < 1:
                 reply_to(message, 'Сегодня вы не можете больше играть.'
                                   '\nНе нужно спамить чат, мой уважаемый друг', None)
                 user.today_state['warned_today'] += 1
                 user.save()
                 return
-            if total_user_reward >= settings.user_limit_day and warned_today >= 2:
+            if total_user_reward >= settings.user_limit_day and warned_today >= 1:
                 return
 
             on_dice_event(message)
@@ -451,7 +439,7 @@ Details:
 
 
 # Обработка кнопки 💰 Мой Кошелёк
-@bot.message_handler(func=lambda message: message.text == '💰 Мой Кошелёк' or message.text == '💰 My wallet')
+@bot.message_handler(func=lambda message: message.text == WALLET_BTN_RU or message.text == WALLET_BTN_EN)
 def my_wallet(message):
     user = User.objects.get(pk=message.chat.id)
     wallet = MinterWallets.objects.get(user=user)

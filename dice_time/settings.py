@@ -86,8 +86,10 @@ WSGI_APPLICATION = 'dice_time.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
+DB_NAME = os.getenv('DB_NAME', 'dicetime_dev')
+DB_USER = os.getenv('DB_USER', 'dicebot')
 DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
-DB_PASSWORD = os.getenv('DB_PASSWORD', None)
+DB_PASS = os.getenv('DB_PASS', None)
 DATABASES = {
     'sqlite': {
          'ENGINE': 'django.db.backends.sqlite3',
@@ -96,9 +98,9 @@ DATABASES = {
      },
     'default': {
        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-       'NAME': 'dicetime_dev',
-       'USER': 'dicebot',
-       'PASSWORD': DB_PASSWORD,
+       'NAME': DB_NAME,
+       'USER': DB_USER,
+       'PASSWORD': DB_PASS,
        'HOST': DB_HOST,
        'PORT': '5432',
     }

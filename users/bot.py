@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from random import randint
@@ -10,10 +11,9 @@ from mintersdk.sdk.transactions import MinterSendCoinTx, MinterMultiSendCoinTx
 
 import requests
 
-from . import scheduler
 from .dice import DiceBot
 from .models import *
-from dice_time.settings import API_TOKEN,  ALLOWED_GROUPS, LOCAL
+from dice_time.settings import API_TOKEN, ALLOWED_GROUPS, LOCAL, RELEASE_UTC_DATETIME
 
 import time
 
@@ -25,11 +25,19 @@ from .utils import get_localized_choice
 
 
 def is_group_text(msg):
-    return msg.chat.type != 'private' and msg.text and not msg.text.startswith('/')
+    return msg.chat.type != 'private' \
+           and msg.text \
+           and not msg.text.startswith('/') \
+           and not msg.reply_to_message \
+           and not msg.forward_from
 
 
 def is_private_text(msg):
     return msg.chat.type == 'private' and msg.text
+
+
+def is_group_reply(msg):
+    return msg.chat.type != 'private' and msg.reply_to_message
 
 
 logger = logging.getLogger('Dice')
@@ -73,34 +81,6 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
     logger.info(f'Send TX response:\n{r}')
     return send_tx
 
-
-@scheduler.scheduler.scheduled_job('interval', minutes=1)
-def make_multisend_list_and_pay():
-    LIMIT=75
-    multisend_list = []
-    gifts = Payment.objects.filter(is_payed=False)[:LIMIT]
-
-    if not gifts:
-        logger.info(f'No events to pay')
-        return
-
-    settings = Tools.objects.get(pk=1)
-    wallet_from = MinterWallet.create(mnemonic=settings.join)
-
-    if len(gifts) == 1:
-        g = gifts[0]
-        send(wallet_from, g.to, g.coin, g.amount, gas_coin=g.coin, payload=settings.payload)
-        g.is_payed = True
-        g.save()
-        return
-
-    for g in gifts:
-        multisend_list.append({'coin': g.coin, 'to': g.to, 'value': g.amount})
-        g.is_payed = True
-        g.save()
-
-    multisend(wallet_from=wallet_from, w_dict=multisend_list, gas_coin=settings.coin, payload=settings.payload)
-            
 
 def set_unbond_obj(event):
     if not event.summa:
@@ -351,6 +331,28 @@ def on_dice_event(message):
             Tools.objects.get(pk=1).coin)), take_money_markup)
         logger.info('Dice event ok.')
 
+
+@bot.message_handler(func=is_group_reply)
+def handle_reply(message):
+    original_msg = message.reply_to_message
+    chat_obj, _ = AllowedChat.objects.get_or_create(
+        chat_id=message.chat.id,
+        defaults={
+            'link_chat': message.chat.username,
+            'title_chat': message.chat.title
+        })
+    if chat_obj.activated_at:
+        return
+
+    release_datetime = datetime.datetime.strptime(RELEASE_UTC_DATETIME, '%Y-%m-%d %H:%M')
+    if original_msg.date >= release_datetime.timestamp():
+        send_message(message, 'Слишком новый чат. Необходима ручная проверка', None)
+        return
+    chat_obj.activated_at = datetime.datetime.now()
+    chat_obj.save()
+    send_message(message, 'It\'s a dice time, baby!', None)
+
+
 # Обработчик всех остальных сообщений (в группе отлавливаем триггеры)
 @bot.message_handler(func=is_group_text)
 def handle_messages(message):
@@ -361,6 +363,15 @@ def handle_messages(message):
             if ALLOWED_GROUPS and message.chat.id not in ALLOWED_GROUPS:
                 send_message(message, 'Тут нельзя)', None)
                 return
+            chat_obj, is_created = AllowedChat.objects.get_or_create(
+                chat_id=message.chat.id,
+                defaults={
+                    'link_chat': message.chat.username,
+                    'title_chat': message.chat.title
+                })
+            if not chat_obj.activated_at and is_created:
+                send_message(message, 'Для активации бота сделайте reply на самое старое сообщение чата', None)
+                return
 
             # проверяем  положен ли выигрыш
             today = date.today()
@@ -368,6 +379,12 @@ def handle_messages(message):
 
             user_won_this_chat_today = DiceEvent.objects.filter(
                 user=user, chat_id=message.chat.id, is_win=True, date__date=today).exists()
+
+            user.today_state.setdefault('date', str(today))
+            if user.today_state['date'] != str(today):
+                del user.today_state['warned_chats']
+                del user.today_state['warned_today']
+                user.save()
 
             user.today_state.setdefault('warned_chats', {})
             warned_here = user.today_state['warned_chats'].setdefault(str(message.chat.id), 0)

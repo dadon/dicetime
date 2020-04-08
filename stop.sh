@@ -1,2 +1,1 @@
-kill `grep -hs ^ gunicorn.pid` 2>/dev/null
-
+kill `grep -hs ^ gunicorn.pid`

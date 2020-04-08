@@ -31,9 +31,17 @@ $ python manage.py collectstatic  # css/js for admin. will use /var/www/static s
 Run and stop
 ============
 
+Make sure you're in a virtualenv (`source .venv/bin/activate`)
+
+Notes:
+  - you can adjust worker count as you wish in `run.sh`
+  - `run.sh` is blocking, so you may want to run it with `nohup` or `screen` tool
+
 ```
-# run.sh (you can adjust worker count as you wish)
+# run.sh
 gunicorn --daemon --reload --access-logfile gunicorn.log --workers 1 --bind 127.0.0.1:8000 --pid gunicorn.pid dice_time.wsgi:application
+python manage.py startjobs  # blocking
+
 # stop.sh
 kill `grep -hs ^ gunicorn.pid` 2>/dev/null
 ```

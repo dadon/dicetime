@@ -6,6 +6,25 @@ import datetime
 from datetime import date
 
 
+class AllowedChat(models.Model):
+    chat_id = models.BigIntegerField(verbose_name='Chat ID')
+
+    title_chat = models.CharField(
+        max_length=40,
+        blank=True,
+        null=True,
+        verbose_name='Имя чата')
+
+    link_chat = models.CharField(
+        max_length=40,
+        blank=True,
+        null=True,
+        verbose_name='Линк на чат')
+
+    created_at = models.DateTimeField(verbose_name='Дата первого сообщения', auto_now_add=True)
+    activated_at = models.DateTimeField(verbose_name='Дата активации', null=True, default=None)
+
+
 class Language(models.Model):
     name = models.CharField(max_length=30, verbose_name='Название языка')
 

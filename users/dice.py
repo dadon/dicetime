@@ -47,6 +47,7 @@ class DiceBot(TeleBot):
         for i in range(3):
             try:
                 super().send_message(*args, **kwargs)
+                return
             except ApiException as api_exc:
                 result = api_exc.result
                 result = result.json()

@@ -37,6 +37,8 @@ SECRET_KEY = 't87pmt&on5s-=65s0d#^dr#899_=gi3#h*s3j+$o#vd(0*(cgh'
 DEBUG = False
 
 ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
     "dicetime.club"
 ]
 

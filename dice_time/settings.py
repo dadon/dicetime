@@ -87,10 +87,10 @@ WSGI_APPLICATION = 'dice_time.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
-DB_NAME = os.getenv('DB_NAME', 'dicetime_dev')
-DB_USER = os.getenv('DB_USER', 'dicebot')
-DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
-DB_PASS = os.getenv('DB_PASS', None)
+DB_NAME = os.environ.get('DB_NAME', 'dicetime_dev')
+DB_USER = os.environ.get('DB_USER', 'dicebot')
+DB_HOST = os.environ.get('DB_HOST', '127.0.0.1')
+DB_PASS = os.environ.get('DB_PASS', None)
 DATABASES = {
     'sqlite': {
          'ENGINE': 'django.db.backends.sqlite3',
@@ -148,6 +148,6 @@ MEDIA_URL = '/pictures/'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
-NODE_API_URL = 'http://api.minter.one'
+NODE_API_URL = os.environ.get('NODE_API_URL', 'http://api.minter.one')
 
 TIMEOUTS = {'read_timeout': 6, 'connect_timeout': 7}

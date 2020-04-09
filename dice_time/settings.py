@@ -16,7 +16,7 @@ dotenv.read_dotenv('dice.env')
 
 RELEASE_UTC_DATETIME = os.environ.get('RELEASE_UTC_DATETIME', '2020-04-08 17:00')
 LOCAL = bool(int(os.environ.get('LOCAL', '0')))
-ADMINS = [69062067, 144406]
+ADMIN_TG_IDS = [69062067, 144406]
 ALLOWED_GROUPS = []  # [-1001363709875, -1001270954422, -485822459, -438800801]
 API_TOKEN = os.environ.get('API_TOKEN', '')
 

@@ -1,10 +1,13 @@
 from telebot import types
 from .models import Language
 
-language_markup = types.InlineKeyboardMarkup(row_width=1)
-for lang in Language.objects.all():
-    language_markup.add(types.InlineKeyboardButton(str(lang.name),
-                callback_data='languag.id.{}'.format(lang.id)))
+
+def get_lang_markup():
+    language_markup = types.InlineKeyboardMarkup(row_width=1)
+    for lang in Language.objects.all():
+        language_markup.add(types.InlineKeyboardButton(str(lang.name),
+                    callback_data='languag.id.{}'.format(lang.id)))
+    return language_markup
 
 
 RULES_BTN_RU = '❔ Правила'

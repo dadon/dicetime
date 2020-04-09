@@ -190,7 +190,7 @@ def command_start(message):
     else:
         user = register(message)
         text = get_localized_choice(user, pk=2)
-        send_message(message, text, language_markup)
+        send_message(message, text, get_lang_markup())
 
     if not MinterWallets.objects.filter(user=user).exists():
         logger.info('############## This should not be printed !!!!!!!!!!!!!!! NO wallet check')

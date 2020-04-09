@@ -257,7 +257,7 @@ def formula_calculation(user, dice, chat_id):
             is_chat_win = True
     details['user_won_day'] = user_won_day
     details['is_chat_win'] = is_chat_win
-    if is_chat_win and user.id not in settings.ADMINS:
+    if is_chat_win and user.id not in settings.ADMIN_TG_IDS:
         return 0, details
 
     chat_stat = DiceEvent.objects \
@@ -421,12 +421,12 @@ def handle_messages(message):
             return
 
 
-@bot.message_handler(commands=['update'], func=lambda m: m.from_user.id in settings.ADMINS)
+@bot.message_handler(commands=['update'], func=lambda m: m.from_user.id in settings.ADMIN_TG_IDS)
 def dice_test(message):
     os.system('git pull')
 
 
-@bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id in settings.ADMINS)
+@bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id in settings.ADMIN_TG_IDS)
 def dice_test(message):
     uid = message.from_user.id
     if message.reply_to_message:

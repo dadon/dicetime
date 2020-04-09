@@ -385,8 +385,10 @@ def handle_messages(message):
 
             user.today_state.setdefault('date', str(today))
             if user.today_state['date'] != str(today):
-                del user.today_state['warned_chats']
-                del user.today_state['warned_today']
+                if 'warned_chats' in user.today_state:
+                    del user.today_state['warned_chats']
+                if 'warned_today' in user.today_state:
+                    del user.today_state['warned_today']
                 user.save()
 
             user.today_state.setdefault('warned_chats', {})

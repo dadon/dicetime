@@ -370,7 +370,10 @@ def handle_messages(message):
                     'title_chat': message.chat.title
                 })
             if not chat_obj.activated_at and is_created:
-                send_message(message, 'Для активации бота сделайте reply на самое старое сообщение чата', None)
+                chat_id_in_link = str(message.chat.id)[4:] \
+                    if str(message.chat.id).startswith('-100') \
+                    else str(message.chat.id)
+                send_message(message, f'Для активации бота сделайте reply на [самое старое сообщение чата](https://t.me/c/{chat_id_in_link}/1)', None)
                 return
 
             # проверяем  положен ли выигрыш

@@ -30,47 +30,41 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = ['id', 'first_name', 'last_name', 'username']
 
 
-@admin.register(Language)
-class LanguageAdmin(admin.ModelAdmin):
-
-    list_display = ('name',)
-
-    search_fields = ['name']
-
-
 @admin.register(MinterWallets)
-class PrizmWalletAdmin(admin.ModelAdmin):
+class WalletAdmin(admin.ModelAdmin):
 
-    list_display = ('user', 'number',)
+    list_display = ('user', 'address', 'balance', 'balance_updated_at')
 
-    search_fields = ['user', 'number']
-
-
-@admin.register(Triggers)
-class TriggersAdmin(admin.ModelAdmin):
-
-    list_display = ('name',)
-
-    search_fields = ['name']
+    search_fields = ['user', 'address', 'balance', 'balance_updated_at']
 
 
 @admin.register(Tools)
 class ToolsAdmin(admin.ModelAdmin):
-    list_display = ('join', 'payload','coin', 'user_limit_day', 'chat_limit_day', 'total_limit_day')
-
+    list_display = ('address', 'payload', 'coin', 'user_limit_day', 'chat_limit_day', 'total_limit_day')
 
 
 @admin.register(DiceEvent)
 class DiceEventAdmin(admin.ModelAdmin):
-    list_display = ('user', 'date', 'summa','is_win','is_payed','chat_id', 'title_chat','link_chat',)
+    list_display = (
+        'user', 'date', 'summa', 'is_win', 'is_payed',
+        'chat_id', 'title_chat', 'link_chat',
+    )
 
     search_fields = ['user', 'title_chat', 'chat_id']
 
 
 @admin.register(Texts)
-class TextstAdmin(admin.ModelAdmin):
-    list_display = ('pk','name', 'text_ru', 'text_eng')
-    list_editable = ['name','text_ru', 'text_eng']
+class TextsAdmin(admin.ModelAdmin):
+    list_display_links = None
+    list_display = ('name', 'text_ru', 'text_eng')
+    list_editable = ['name', 'text_ru', 'text_eng']
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Triggers)
+class TriggersAdmin(admin.ModelAdmin):
+    list_display_links = None
+    list_display = 'phrase', 'action', 'exact'
+    list_editable = 'phrase', 'action', 'exact'

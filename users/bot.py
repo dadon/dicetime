@@ -687,3 +687,11 @@ Details:
 """
     markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
     send_message(message, response, markup if message.chat.type == 'private' else KB_REMOVE)
+
+
+@bot.message_handler(commands=['del'], func=lambda m: is_bot_creator_in_group(m))
+def dice_del(message):
+    user, _ = get_user_model(message.from_user)
+    today = date.today()
+    DiceEvent.objects.filter(user=user, date__date=today, is_win=True).update(is_win=False)
+    send_message(message, 'Сегодняшние выигрыши уже не выигрыши', None)

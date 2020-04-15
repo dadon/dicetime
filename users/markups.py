@@ -1,5 +1,6 @@
 from telebot import types
 
+KB_REMOVE = types.ReplyKeyboardRemove()
 
 RULES_BTN_RU = '❔ Правила'
 WALLET_BTN_RU = '💰 Мой Кошелёк'

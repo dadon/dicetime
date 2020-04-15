@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 from mintersdk.sdk.wallet import MinterWallet
 
 from users.minter import send, multisend, API
-from users.models import Payment, Tools, MinterWallets
+from users.models import Payment, Tools, MinterWallets, ChatWallet
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from users.tools import log_setup
@@ -20,24 +20,28 @@ BALANCE_API_BATCH_SIZE = 155
 BALANCE_JOB_GET_BATCH_SIZE = 2500
 BALANCE_JOB_UPD_BATCH_SIZE = 500
 
-BALANCE_JOB_INTERVAL = 20
+USER_BALANCE_JOB_INTERVAL = 20
+CHAT_BALANCE_JOB_INTERVAL = 4.7
 PAYMENT_JOB_INTERVAL = 60
 
 
-def update_balances():
+def __update_balances(model):
     logger.info('--------------------------')
-    logger.info('Balance update job started')
+    logger.info(f'Balance update job started ({model})')
     now = datetime.utcnow()
     coin = Tools.objects.get(pk=1).coin
-    to_update = MinterWallets.objects \
-        .filter(balance_updated_at__lte=now - timedelta(seconds=10)) \
+    to_update = model.objects \
+        .filter(balance_updated_at__lte=now - timedelta(seconds=5)) \
         .order_by('balance_updated_at')[:BALANCE_JOB_GET_BATCH_SIZE]
     balances = {wallet.address: wallet.balance for wallet in to_update}
 
     logger.info(f'{len(balances)} addresses to check')
     balances_to_update = {}
     addresses = list(balances.keys())
-    batches = [addresses[i: i + BALANCE_API_BATCH_SIZE] for i in range(0, len(addresses), BALANCE_API_BATCH_SIZE)]
+    batches = [
+        addresses[i: i + BALANCE_API_BATCH_SIZE]
+        for i in range(0, len(addresses), BALANCE_API_BATCH_SIZE)
+    ]
     total_time = 0
     for batch in batches:
         t = time()
@@ -55,8 +59,8 @@ def update_balances():
         logger.info(f'No balance changes')
         return
 
-    now = datetime.utcnow()
     logger.info(f'Updating {len(balances_to_update)} rows...')
+    now = datetime.utcnow()
     t = time()
     to_update.pg_bulk_update({
         address: {
@@ -95,8 +99,17 @@ def make_multisend_list_and_pay():
     multisend(wallet_from=wallet_from, w_dict=multisend_list, gas_coin=settings.coin, payload=settings.payload)
 
 
+def update_user_balances():
+    __update_balances(MinterWallets)
+
+
+def update_chat_balances():
+    __update_balances(ChatWallet)
+
+
 class Command(BaseCommand):
     def handle(self, **options):
-        scheduler.add_job(update_balances, 'interval', seconds=BALANCE_JOB_INTERVAL)
+        scheduler.add_job(update_user_balances, 'interval', seconds=USER_BALANCE_JOB_INTERVAL)
+        scheduler.add_job(update_chat_balances, 'interval', seconds=CHAT_BALANCE_JOB_INTERVAL)
         scheduler.add_job(make_multisend_list_and_pay, 'interval', seconds=PAYMENT_JOB_INTERVAL)
         scheduler.start()

@@ -611,11 +611,11 @@ def handle_messages(message):
         user.today_state.setdefault('warned_chats', {})
         warned_here = user.today_state['warned_chats'].setdefault(str(message.chat.id), 0)
         if user_won_this_chat_today and warned_here < 1:
-            msg_text = 'Попробовать в другом чате'
+            button_text = 'Попробовать в другом чате'
             reply_to(
                 message, 'В этом чате вы уже не можете сегодня играть.'
                          '\nНе нужно спамить чат, мой уважаемый друг',
-                another_chat_markup(bot.user.username, msg_text))
+                another_chat_markup(bot.user.username, button_text))
             user.today_state['warned_chats'][str(message.chat.id)] += 1
             user.save()
             return

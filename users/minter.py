@@ -38,7 +38,7 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
     send_tx.sign(wallet_from['private_key'])
     r = API.send_transaction(send_tx.signed_tx)
     logger.info(f'Send TX response:\n{r}')
-    return send_tx
+    return r
 
 
 def multisend(wallet_from, w_dict, gas_coin='BIP', payload=''):
@@ -52,7 +52,7 @@ def multisend(wallet_from, w_dict, gas_coin='BIP', payload=''):
     tx.sign(wallet_from['private_key'])
     r = API.send_transaction(tx.signed_tx)
     logger.info(f'Send TX response:\n{r}')
-    return tx
+    return r
 
 
 def wallet_balance(address, with_nonce=False):

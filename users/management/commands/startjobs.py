@@ -86,17 +86,18 @@ def make_multisend_list_and_pay():
 
     if len(gifts) == 1:
         g = gifts[0]
-        send(wallet_from, g.to, g.coin, g.amount, gas_coin=g.coin, payload=settings.payload)
-        g.is_payed = True
-        g.save()
+        response = send(wallet_from, g.to, g.coin, g.amount, gas_coin=g.coin, payload=settings.payload)
+        if 'error' not in response:
+            g.is_payed = True
+            g.save()
         return
 
     for g in gifts:
         multisend_list.append({'coin': g.coin, 'to': g.to, 'value': g.amount})
-        g.is_payed = True
-        g.save()
 
-    multisend(wallet_from=wallet_from, w_dict=multisend_list, gas_coin=settings.coin, payload=settings.payload)
+    response = multisend(wallet_from=wallet_from, w_dict=multisend_list, gas_coin=settings.coin, payload=settings.payload)
+    if 'error' not in response:
+        gifts.update(is_payed=True)
 
 
 def update_user_balances():

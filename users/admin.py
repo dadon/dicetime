@@ -50,7 +50,7 @@ class DiceEventAdmin(admin.ModelAdmin):
     search_fields = ['chat_id', 'user', 'date', 'title_chat']
 
 
-@admin.register(Texts)
+@admin.register(Text)
 class TextsAdmin(admin.ModelAdmin):
     list_display_links = None
     list_display = ('name', 'text_ru', 'text_eng')

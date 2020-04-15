@@ -308,7 +308,7 @@ class Payment(models.Model):
         verbose_name_plural = 'Платежи'
 
 
-class Texts(models.Model):
+class Text(models.Model):
     name = models.CharField(max_length=30, verbose_name='Название сообщения',default='Сообщение без номера')
     text_ru = models.TextField(verbose_name='Текст сообщения')
     text_eng = models.TextField(verbose_name='Текст сообщения eng')

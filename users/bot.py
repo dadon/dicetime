@@ -291,7 +291,7 @@ def command_start(message):
     if is_created:
         markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
         text = get_localized_choice(user, 1)
-        document = Texts.objects.get(pk=1).attachment
+        document = Text.objects.get(pk=1).attachment
         bot.send_document(message.chat.id, document, caption=text, reply_markup=markup)
 
 
@@ -426,9 +426,11 @@ def my_wallet(message):
     private_key = wallet_obj['private_key']
 
     coin = Tools.objects.get(pk=1).coin
-    balances, nonce = wallet_balance(wallet_obj['address'], with_nonce=True)
-    logger.info(balances)
-    amount = balances.get(coin, Decimal(0)).quantize(Decimal('0.000001'), rounding=ROUND_DOWN)
+    # balances, nonce = wallet_balance(wallet_obj['address'], with_nonce=True)
+    # logger.info(balances)
+    # amount = balances.get(coin, Decimal(0)).quantize(Decimal('0.000001'), rounding=ROUND_DOWN)
+    amount = wallet.balance
+    nonce = API.get_nonce(wallet.address)
 
     check_obj = MinterCheck(
         nonce=1, due_block=999999999, coin=coin, value=amount, gas_coin=coin, passphrase=wallet.mnemonic)
@@ -462,7 +464,7 @@ def my_wallet(message):
         redeem_url = MinterDeeplink(redeem_tx, data_only=True).generate(password=passphrase)
 
     if available_send > 0:
-        user_address = get_user_timeloop_address(message.chat.id+1)
+        user_address = get_user_timeloop_address(message.chat.id)
         timeloop_text = 'Time Loop'
 
     markup = wallet_markup(
@@ -481,11 +483,13 @@ def my_wallet(message):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('timeloop_'))
 def timeloop(call):
     user = User.objects.get(pk=call.from_user.id)
+    coin = Tools.objects.get(pk=1).coin
     wallet = MinterWallets.objects.get(user=user)
     wallet_obj = MinterWallet.create(mnemonic=wallet.mnemonic)
-    balances, nonce = wallet_balance(wallet_obj['address'], with_nonce=True)
-    coin = Tools.objects.get(pk=1).coin
-    amount = balances.get(coin, Decimal(0))
+    # balances, nonce = wallet_balance(wallet_obj['address'], with_nonce=True)
+    # amount = balances.get(coin, Decimal(0))
+    amount = wallet.balance
+    nonce = API.get_nonce(wallet.address)
 
     send_tx = MinterSendCoinTx(coin, wallet.address, amount, nonce=nonce, gas_coin=coin)
     send_tx.sign(wallet_obj['private_key'])

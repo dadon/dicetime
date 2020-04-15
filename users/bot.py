@@ -682,4 +682,4 @@ Details:
 ```
 """
     markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
-    send_message(message, response, markup)
+    send_message(message, response, markup if message.chat.type == 'private' else types.ReplyKeyboardRemove)

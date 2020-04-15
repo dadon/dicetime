@@ -301,7 +301,8 @@ def chat_admin(message):
     chats = AllowedChat.objects.filter(creator=user, status='activated')
     if not chats:
         text = 'Вы должны быть создателем одного из чатов, в котором работает этот бот'
-        send_message(message, text, None)
+        button_text = 'Выберите чат'
+        send_message(message, text, another_chat_markup(bot.user.username, button_text))
         return
 
     text = 'Чаты'
@@ -610,8 +611,11 @@ def handle_messages(message):
         user.today_state.setdefault('warned_chats', {})
         warned_here = user.today_state['warned_chats'].setdefault(str(message.chat.id), 0)
         if user_won_this_chat_today and warned_here < 1:
-            reply_to(message, 'В этом чате вы уже не можете сегодня играть.'
-                              '\nНе нужно спамить чат, мой уважаемый друг', another_chat_markup(bot.user.username))
+            msg_text = 'Попробовать в другом чате'
+            reply_to(
+                message, 'В этом чате вы уже не можете сегодня играть.'
+                         '\nНе нужно спамить чат, мой уважаемый друг',
+                another_chat_markup(bot.user.username, msg_text))
             user.today_state['warned_chats'][str(message.chat.id)] += 1
             user.save()
             return

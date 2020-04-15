@@ -35,10 +35,10 @@ def wallet_markup(to_wallet_text=None, redeem_deeplink=None, timeloop_text=None,
     return markup if len(markup.keyboard) else None
 
 
-def another_chat_markup(bot_username):
+def another_chat_markup(bot_username, msg_text):
     url = f'https://telegram.me/{bot_username}?startgroup=hbase'
     markup = types.InlineKeyboardMarkup(row_width=1)
-    markup.add(types.InlineKeyboardButton('Попробовать в другом чате', url=url))
+    markup.add(types.InlineKeyboardButton(msg_text, url=url))
     return markup
 
 

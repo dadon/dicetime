@@ -93,7 +93,7 @@ def reply_to(message, text, markup):
 
 def get_user_model(tg_user):
     ru_lang = Language.objects.get(pk=1)
-    en_lang = Language.objects.get(pk=1)
+    en_lang = Language.objects.get(pk=2)
     user_lang = get_language(tg_user.language_code)
     user_lang_model = ru_lang if user_lang == 'ru' else en_lang
 

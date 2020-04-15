@@ -17,7 +17,7 @@ from shortuuid import uuid
 from telebot.types import CallbackQuery
 
 from .dice import DiceBot, get_chat_creation_date
-from .minter import send, API, wallet_balance
+from .minter import send, API, wallet_balance, coin_convert
 from .models import *
 from dice_time.settings import API_TOKEN, LOCAL, RELEASE_UTC_DATETIME, ORIGIN
 
@@ -228,17 +228,21 @@ def calc_dice_reward(user, dice, chat_id):
     user_reputation = wilson_score(user.upvotes, user.downvotes)
     details['user_upvotes'] = user.upvotes
     details['user_downvotes'] = user.downvotes
+    details['user_reputation'] = user_reputation
     details['user_influence'] = None
     details['user_lifetime'] = None
-    details['user_reputation'] = user_reputation
 
     reward = dice_multiplier * chat_size_multiplier * \
         user_limit_multiplier * chat_limit_multiplier * \
         total_limit_multiplier * (user_reputation + 1)
-    reward = round(reward, 6)
 
     if reward + user_won_day > user_limit_day:
         reward = user_limit_day - user_won_day
+
+    reward_bip = coin_convert(user_settings.coin, reward, 'BIP')
+    if 0 < reward_bip < 0.05:
+        reward_bip = 0.05
+        reward = coin_convert('BIP', reward_bip, user_settings.coin)
     return reward, details
 
 

@@ -26,7 +26,7 @@ API = MinterRetryAPI(settings.NODE_API_URL)
 def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
     logger.info(f'Sending: {value} {coin} -> {wallet_to}')
     if LOCAL and not LOCAL_REAL_TXS:
-        return
+        return {}
     nonce = API.get_nonce(wallet_from['address'])
     send_tx = MinterSendCoinTx(
         coin,
@@ -45,7 +45,7 @@ def multisend(wallet_from, w_dict, gas_coin='BIP', payload=''):
     for send_rec in w_dict:
         logger.info(f"Sending: {send_rec['value']} {send_rec['coin']} -> {send_rec['to']}")
     if LOCAL and not LOCAL_REAL_TXS:
-        return
+        return {}
 
     nonce = API.get_nonce(wallet_from['address'])
     tx = MinterMultiSendCoinTx(w_dict, nonce=nonce, gas_coin=gas_coin, payload=payload)
@@ -61,3 +61,8 @@ def wallet_balance(address, with_nonce=False):
     balance = response['result']['balance']
     nonce = response['result']['transaction_count'] + 1
     return (balance, nonce) if with_nonce else balance
+
+
+def coin_convert(coin, amount, to):
+    result = API.estimate_coin_sell(coin, amount, to, pip2bip=True)['result']
+    return float(result['will_get'])

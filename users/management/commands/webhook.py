@@ -9,7 +9,7 @@ from users.bot import bot
 from users.tools import log_setup
 
 logger = logging.getLogger('Dice')
-log_setup(logging.DEBUG)
+# log_setup(logging.DEBUG)
 
 
 class Command(BaseCommand):

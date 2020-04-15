@@ -176,28 +176,42 @@ LOGGING = {
             'style': '{',
         },
     },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
     'handlers': {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose'
         },
+        'file': {
+            'filters': ['require_debug_false'],
+            'level': 'DEBUG',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': 'debug.log',
+            'when': 'midnight',
+            'utc': 'True',
+            'backupCount': 7
+        },
     },
-    'root': {
-        'handlers': ['console'],
-    },
+    # 'root': {
+    #     'handlers': ['console'],
+    # },
     'loggers': {
         # 'django': {
         #     'handlers': ['console'],
         #     # 'level': 'DEBUG',
         # },
         'TeleBot': {
-            'handlers': ['console'],
-            # 'level': 'DEBUG',
-            'level': 'INFO',
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            # 'level': 'INFO',
         },
         'Dice': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': False
         }

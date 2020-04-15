@@ -13,7 +13,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from users.tools import log_setup
 
 scheduler = BlockingScheduler()
-log_setup(logging.DEBUG)
+# log_setup(logging.DEBUG)
 logger = logging.getLogger('Dice')
 
 BALANCE_API_BATCH_SIZE = 155
@@ -94,10 +94,18 @@ def make_multisend_list_and_pay():
 
     for g in gifts:
         multisend_list.append({'coin': g.coin, 'to': g.to, 'value': g.amount})
+        g.is_payed = True
 
-    response = multisend(wallet_from=wallet_from, w_dict=multisend_list, gas_coin=settings.coin, payload=settings.payload)
+    response = multisend(
+        wallet_from=wallet_from,
+        w_dict=multisend_list,
+        gas_coin=settings.coin,
+        payload=settings.payload)
+
     if 'error' not in response:
-        gifts.update(is_payed=True)
+        Payment.objects.bulk_update(gifts, ['is_payed'])
+        # gifts.pg_bulk_update([
+        #     (g.id, g.balance) for g in gifts], fields='id', )
 
 
 def update_user_balances():

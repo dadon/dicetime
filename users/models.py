@@ -267,6 +267,7 @@ class Exceptions(models.Model):
 
 
 class Payment(models.Model):
+
     user = models.ForeignKey(
         User,
         verbose_name='Пользователь',

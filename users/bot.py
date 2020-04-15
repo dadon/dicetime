@@ -14,6 +14,7 @@ from mintersdk.sdk.transactions import MinterRedeemCheckTx, MinterSendCoinTx
 from mintersdk.sdk.wallet import MinterWallet
 
 from shortuuid import uuid
+from telebot.types import CallbackQuery
 
 from .dice import DiceBot, get_chat_creation_date
 from .minter import send, API, wallet_balance
@@ -316,6 +317,11 @@ def chat_detail(call):
     except AllowedChat.DoesNotExist:
         return
 
+    send_chat_detail(call.message, chat)
+
+
+def send_chat_detail(root_message, chat):
+    chat.refresh_from_db()
     w = MinterWallet.create()
     chat_wallet, _ = ChatWallet.objects.get_or_create(
         chat=chat, defaults={
@@ -328,8 +334,27 @@ Seed: `{chat_wallet.mnemonic}`
 Баланс: {chat_wallet.balance}'''
     markup = chat_actions_markup(chat)
     bot.edit_message_text(
-        text, call.message.chat.id, call.message.message_id,
+        text, root_message.chat.id, root_message.message_id,
         reply_markup=markup, parse_mode='markdown')
+
+
+def chat_setting_prompt(user, setting):
+    headr = {
+        'ulimit': '*User Reward Limit*',
+        'climit': '*Chat Reward Limit*',
+        'dt': '*Dice Time*'
+    }
+    descr = {
+        'ulimit': 'Max. *single user* reward\n'
+                  'Example input: `77.01 DICE`',
+        'climit': 'Max. *chat total* reward 24h\n'
+                  'Example input: `148.8 TIME`',
+        'dt': 'Dice will be available in this time\n'
+              'Example input: `17:00-18:00`'
+    }
+    return f'{headr[setting]}\n\n' \
+           f'{descr[setting]}\n\n' \
+        '__Send me the new value to update this setting__'
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('set.'))
@@ -340,17 +365,41 @@ def chat_setting(call):
         chat = AllowedChat.objects.get(chat_id=chat_id, creator=user, status='activated')
     except AllowedChat.DoesNotExist:
         return
-    prompt_txt = chat_setting_prompt(user, setring)
-    markup = btn_cancel_markup()
+
+    prompt_txt = chat_setting_prompt(user, setting)
+    markup = cancel_markup()
     cid, mid = call.message.chat.id, call.message.message_id
-    bot.edit_message_text(prompt_txt, cid, mid, reply_markup=None)
-    bot.edit_message_reply_markup(cid, mid, reply_markup=markup)
+    bot.edit_message_text(prompt_txt, cid, mid, reply_markup=markup, parse_mode='markdown')
 
-    def _set_chat_param(message):
-        if setting == 'dt':
-            pass
+    def _set_chat_param(update):
+        if isinstance(update, CallbackQuery) and update.data == 'back':
+            send_chat_detail(call.message, chat)
+            return
+        bot.delete_message(update.chat.id, update.message_id)
+        try:
+            if setting == 'dt':
+                f, t = update.text.split('-')
+                if f > t:
+                    raise ValueError(f'From > To: ({f} - {t})')
+                chat.dice_time_from = f
+                chat.dice_time_to = t
+                chat.save()
+            else:
+                text_parts = update.text.split()
+                limit = text_parts[0]
+                coin = 'TIME' if len(text_parts) == 1 else text_parts[1]
+                if setting == 'ulimit':
+                    chat.user_limit_day = Decimal(limit)
+                    chat.coin = coin
+                    chat.save()
+                if setting == 'climit':
+                    chat.chat_limit_day = Decimal(limit)
+                    chat.coin = coin
+                    chat.save()
+        except Exception as exc:
+            logger.debug(f'### {type(exc)}: {exc}')
 
-
+        send_chat_detail(call.message, chat)
 
     bot.register_next_step_handler(call.message, _set_chat_param)
 

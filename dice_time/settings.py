@@ -49,7 +49,8 @@ if LOCAL:
     resp = requests.get(ngrok_tunnels)
     ngrok_url = resp.json()['tunnels'][0]['public_url']
     ORIGIN = ngrok_url + '/'
-    # ALLOWED_HOSTS.append(ORIGIN[8:-1])
+    ALLOWED_HOSTS.append(ORIGIN[7:-1])
+
 
 # Application definition
 

@@ -7,20 +7,22 @@ RULES_BTN_EN = '❔ Rules'
 WALLET_BTN_EN = '💰 My Wallet'
 CHAT_ADMIN_RU = 'Управление чатами'
 CHAT_ADMIN_EN = 'Chat administration'
-C
+
+CANCEL_INPUT_EN = 'Cancel'
+CANCEL_INPUT_RU = 'Отмена'
+
+
 HOME_MARKUP_RU = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-HOME_MARKUP_RU.add(
-    types.KeyboardButton(RULES_BTN_RU),
-    types.KeyboardButton(WALLET_BTN_RU),
-    types.KeyboardButton(CHAT_ADMIN_RU),
-)
+HOME_MARKUP_RU.add(RULES_BTN_RU, WALLET_BTN_RU, CHAT_ADMIN_RU)
 
 HOME_MARKUP_ENG = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-HOME_MARKUP_ENG.add(
-    types.KeyboardButton(RULES_BTN_EN),
-    types.KeyboardButton(WALLET_BTN_EN),
-    types.KeyboardButton(CHAT_ADMIN_EN),
-)
+HOME_MARKUP_ENG.add(RULES_BTN_EN, WALLET_BTN_EN, CHAT_ADMIN_EN)
+
+
+def cancel_markup():
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    markup.add(types.InlineKeyboardButton(CANCEL_INPUT_RU, callback_data='back'))
+    return markup
 
 
 def wallet_markup(to_wallet_text=None, redeem_deeplink=None, timeloop_text=None, user_address=None):

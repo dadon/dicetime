@@ -7,9 +7,9 @@ from .models import *
 
 class ExceptionsForm(forms.ModelForm):
     user = forms.ModelChoiceField(
-            queryset=User.objects.all(),
-            widget=autocomplete.ModelSelect2(url='username_select2')
-            )
+        queryset=User.objects.all(),
+        widget=autocomplete.ModelSelect2(url='username_select2')
+    )
 
     class Meta:
         model = Exceptions
@@ -26,7 +26,6 @@ class ExceptionsAdmin(admin.ModelAdmin):
 class UserAdmin(admin.ModelAdmin):
     
     list_display = ('id', 'first_name', 'last_name', 'username')
-
     search_fields = ['id', 'first_name', 'last_name', 'username']
 
 
@@ -34,7 +33,6 @@ class UserAdmin(admin.ModelAdmin):
 class WalletAdmin(admin.ModelAdmin):
 
     list_display = ('user', 'address', 'balance', 'balance_updated_at')
-
     search_fields = ['user', 'address', 'balance', 'balance_updated_at']
 
 
@@ -49,8 +47,7 @@ class DiceEventAdmin(admin.ModelAdmin):
         'user', 'date', 'summa', 'is_win', 'is_payed',
         'chat_id', 'title_chat', 'link_chat',
     )
-
-    search_fields = ['user', 'title_chat', 'chat_id']
+    search_fields = ['chat_id', 'user', 'date', 'title_chat']
 
 
 @admin.register(Texts)

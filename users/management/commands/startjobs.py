@@ -27,8 +27,6 @@ PAYMENT_JOB_INTERVAL = 60
 def update_balances():
     logger.info('--------------------------')
     logger.info('Balance update job started')
-    getcontext().prec = 7
-    getcontext().rounding = ROUND_DOWN
     now = datetime.utcnow()
     coin = Tools.objects.get(pk=1).coin
     to_update = MinterWallets.objects \
@@ -45,9 +43,9 @@ def update_balances():
         t = time()
         response = API.get_addresses(batch, pip2bip=True)['result']
         balances_to_update.update({
-            bal['address']: round(bal['balance'].get(coin), 6)
+            bal['address']: bal['balance'].get(coin, Decimal(0)).quantize(Decimal(0.123456))
             for bal in response
-            if round(bal['balance'].get(coin, 0), 6) != balances[bal['address']]
+            if bal['balance'].get(coin, Decimal(0)).quantize(Decimal(0.123456)) != balances[bal['address']]
         })
         iter_time = time() - t
         total_time += iter_time

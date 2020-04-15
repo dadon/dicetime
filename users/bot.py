@@ -1,6 +1,7 @@
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from decimal import getcontext, ROUND_DOWN
+from functools import partial
 from random import randint
 from pprint import pformat
 
@@ -329,6 +330,29 @@ Seed: `{chat_wallet.mnemonic}`
     bot.edit_message_text(
         text, call.message.chat.id, call.message.message_id,
         reply_markup=markup, parse_mode='markdown')
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('set.'))
+def chat_setting(call):
+    user, _ = get_user_model(call.from_user)
+    setting, chat_id = call.data.split('.')[1:]
+    try:
+        chat = AllowedChat.objects.get(chat_id=chat_id, creator=user, status='activated')
+    except AllowedChat.DoesNotExist:
+        return
+    prompt_txt = chat_setting_prompt(user, setring)
+    markup = btn_cancel_markup()
+    cid, mid = call.message.chat.id, call.message.message_id
+    bot.edit_message_text(prompt_txt, cid, mid, reply_markup=None)
+    bot.edit_message_reply_markup(cid, mid, reply_markup=markup)
+
+    def _set_chat_param(message):
+        if setting == 'dt':
+            pass
+
+
+
+    bot.register_next_step_handler(call.message, _set_chat_param)
 
 
 @bot.message_handler(func=lambda message: message.text == RULES_BTN_RU or message.text == RULES_BTN_EN)

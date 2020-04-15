@@ -6,7 +6,7 @@ from mintersdk.minterapi import MinterAPI
 from mintersdk.sdk.transactions import MinterSendCoinTx, MinterMultiSendCoinTx
 from requests import ReadTimeout, ConnectTimeout, HTTPError
 
-from dice_time.settings import LOCAL, REAL_TXS
+from dice_time.settings import LOCAL, LOCAL_REAL_TXS
 from users.tools import retry
 
 logger = logging.getLogger('Dice')
@@ -19,12 +19,13 @@ class MinterRetryAPI(MinterAPI):
     def _request(self, command, request_type='get', **kwargs):
         return super()._request(command, request_type=request_type, **kwargs)
 
+
 API = MinterRetryAPI(settings.NODE_API_URL)
 
 
 def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
     logger.info(f'Sending: {value} {coin} -> {wallet_to}')
-    if LOCAL and not REAL_TXS:
+    if LOCAL and not LOCAL_REAL_TXS:
         return
     nonce = API.get_nonce(wallet_from['address'])
     send_tx = MinterSendCoinTx(
@@ -43,7 +44,7 @@ def send(wallet_from, wallet_to, coin, value, gas_coin='BIP', payload=''):
 def multisend(wallet_from, w_dict, gas_coin='BIP', payload=''):
     for send_rec in w_dict:
         logger.info(f"Sending: {send_rec['value']} {send_rec['coin']} -> {send_rec['to']}")
-    if LOCAL and not REAL_TXS:
+    if LOCAL and not LOCAL_REAL_TXS:
         return
 
     nonce = API.get_nonce(wallet_from['address'])

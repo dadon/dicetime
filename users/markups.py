@@ -7,8 +7,7 @@ RULES_BTN_EN = '❔ Rules'
 WALLET_BTN_EN = '💰 My Wallet'
 CHAT_ADMIN_RU = 'Управление чатами'
 CHAT_ADMIN_EN = 'Chat administration'
-
-
+C
 HOME_MARKUP_RU = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 HOME_MARKUP_RU.add(
     types.KeyboardButton(RULES_BTN_RU),
@@ -54,7 +53,7 @@ def chat_actions_markup(chat):
     c_limit_text = f'Лимит на чат в день ({chat.chat_limit_day})'
     dice_time_text = f'Dice Time ({chat.dice_time_from.strftime("%H:%M")} - {chat.dice_time_to.strftime("%H:%M")})'
     markup.add(
-        types.InlineKeyboardButton(u_limit_text, callback_data=f'ulimit.{chat.chat_id}'),
-        types.InlineKeyboardButton(c_limit_text, callback_data=f'climit.{chat.chat_id}'),
-        types.InlineKeyboardButton(dice_time_text, callback_data=f'dt.{chat.chat_id}'))
+        types.InlineKeyboardButton(u_limit_text, callback_data=f'set.ulimit.{chat.chat_id}'),
+        types.InlineKeyboardButton(c_limit_text, callback_data=f'set.climit.{chat.chat_id}'),
+        types.InlineKeyboardButton(dice_time_text, callback_data=f'set.dt.{chat.chat_id}'))
     return markup

@@ -23,7 +23,7 @@ API_TOKEN = os.getenv('API_TOKEN', '')
 TG_API_HASH = os.getenv('TG_API_HASH', '')
 TG_API_ID = os.getenv('TG_API_ID', '')
 ORIGIN = os.getenv('ORIGIN', 'https://tg-dice-bot.avallon.im/')
-REAL_TXS = True
+LOCAL_REAL_TXS = False
 FIELD_ENCRYPTION_KEY = os.getenv('MNEMONIC_ENCRYPTION_KEY')
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)

@@ -586,12 +586,20 @@ def handle_messages(message):
             chat_obj.status = 'activated'
             chat_obj.save()
 
-        # проверяем  положен ли выигрыш
-        today = date.today()
-        user = User.objects.get(pk=message.from_user.id)
+        now = datetime.utcnow()
+        timenow = now.time()
+        if timenow < chat_obj.dice_time_from or timenow > chat_obj.dice_time_to:
+            return
 
-        user_won_this_chat_today = DiceEvent.objects.filter(
-            user=user, chat_id=message.chat.id, is_win=True, date__date=today).exists()
+        # проверяем  положен ли выигрыш
+        today = now.date()
+        user, is_created = get_user_model(message.from_user)
+
+        user_won_this_chat_today = False if is_created else \
+            DiceEvent.objects.filter(
+                user=user, chat_id=message.chat.id,
+                is_win=True, date__date=today
+            ).exists()
 
         user.today_state.setdefault('date', str(today))
         if user.today_state['date'] != str(today):

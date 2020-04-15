@@ -54,7 +54,7 @@ class AllowedChat(models.Model):
         default=time(hour=0, minute=0))
     dice_time_to = models.TimeField(
         verbose_name='Dice Time (to)',
-        default=time(hour=23, minute=59))
+        default=time(hour=23, minute=59, second=59))
 
     def __str__(self):
         return f'Chat#{self.chat_id} {self.title_chat} status={self.status} status_updated_at={self.status_updated_at}'

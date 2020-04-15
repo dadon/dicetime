@@ -22,9 +22,13 @@ $ touch dice.env  # see dice.env.sample
 # setup nginx conf (see reference conf from this repo)
 # copy /root/dicetime/db.sqlite3 from dev server to project folder (needed for db initial content setup)
 
-$ python manage.py migrate  # empty PG tables creation
-$ python manage.py sqlite2pg  # copy initial data from db.sqlite to PG
-$ python manage.py collectstatic  # css/js for admin. will use /var/www/static so make sure nginx serves it
+$ ./manage.py generate_encryption_key -> dice.env SECRET_KEY and MNEMONIC_ENCRYPTION_KEY
+$ ./manage.py migrate  # empty PG tables creation
+$ (it was needed only once) ./manage.py sqlite2pg  # copy initial data from db.sqlite to PG
+$ ./manage.py collectstatic  # css/js for admin. will use /var/www/static so make sure nginx serves it
+
+# tool to set/replace payout config
+$ ./manage.py setaddr seed phrase words ...
 ```
 
 
@@ -39,8 +43,10 @@ Notes:
 
 ```
 # run.sh
-gunicorn --daemon --reload --access-logfile gunicorn.log --workers 1 --bind 127.0.0.1:8000 --pid gunicorn.pid dice_time.wsgi:application
-python manage.py startjobs  # blocking
+$ gunicorn --reload --access-logfile gunicorn.log --workers 4 --bind 127.0.0.1:8000 --pid gunicorn.pid dice_time.wsgi:application
+
+$ ./manage.py setaddr seed phrase words ...
+$ ./manage.py startjobs  # blocking
 
 # stop.sh
 kill `grep -hs ^ gunicorn.pid` 2>/dev/null

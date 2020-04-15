@@ -544,98 +544,107 @@ def handle_messages(message):
     msg_normalized = ' '.join(filter(None, str(message.text).lower().split(' ')))
 
     for trigger in Triggers.objects.filter(action='dice'):
-        if trigger.phrase.lower() in msg_normalized:
-            chat_obj, is_created = AllowedChat.objects.get_or_create(
-                chat_id=message.chat.id,
-                defaults={
-                    'link_chat': message.chat.username,
-                    'title_chat': message.chat.title
-                })
+        if trigger.phrase.lower() not in msg_normalized:
+            continue
+        chat_obj, is_created = AllowedChat.objects.get_or_create(
+            chat_id=message.chat.id,
+            defaults={
+                'link_chat': message.chat.username,
+                'title_chat': message.chat.title
+            })
 
-            if not chat_obj.creator:
-                creator = get_chat_creator(message.chat.id)
-                chat_obj.creator = creator
-                chat_obj.save()
+        if not chat_obj.creator:
+            creator = get_chat_creator(message.chat.id)
+            chat_obj.creator = creator
+            chat_obj.save()
 
-            if chat_obj.status == 'restricted':
-                return
-
-            if chat_obj.status in [None, 'errored']:
-                first_msg_ts = None
-                try:
-                    first_msg_ts = get_chat_creation_date(message.chat.id)
-                    chat_obj.created_at = datetime.utcfromtimestamp(first_msg_ts)
-                except Exception as exc:
-                    logger.error(
-                        f'\nGet chat creation date error.\n'
-                        f'id={message.chat.id} type={message.chat.type} title={message.chat.title}\n'
-                        f'{type(exc)}: {exc}')
-                if not first_msg_ts:
-                    chat_obj.status_updated_at = datetime.utcnow()
-                    chat_obj.status = 'errored'
-                    chat_obj.save()
-                    return
-                release_datetime = datetime.strptime(RELEASE_UTC_DATETIME, '%Y-%m-%d %H:%M')
-                if first_msg_ts > release_datetime.timestamp():
-                    chat_obj.status_updated_at = datetime.utcnow()
-                    chat_obj.status = 'restricted'
-                    chat_obj.save()
-                    return
-                chat_obj.status_updated_at = datetime.utcnow()
-                chat_obj.status = 'activated'
-                chat_obj.save()
-
-            # проверяем  положен ли выигрыш
-            today = date.today()
-            user = User.objects.get(pk=message.from_user.id)
-
-            user_won_this_chat_today = DiceEvent.objects.filter(
-                user=user, chat_id=message.chat.id, is_win=True, date__date=today).exists()
-
-            user.today_state.setdefault('date', str(today))
-            if user.today_state['date'] != str(today):
-                user.today_state['date'] = str(today)
-                user.today_state.pop('warned_chats', None)
-                user.today_state.pop('warned_today', None)
-
-            user.today_state.setdefault('warned_chats', {})
-            warned_here = user.today_state['warned_chats'].setdefault(str(message.chat.id), 0)
-            if user_won_this_chat_today and warned_here < 1:
-                reply_to(message, 'В этом чате вы уже не можете сегодня играть.'
-                                  '\nНе нужно спамить чат, мой уважаемый друг', another_chat_markup(bot.user.username))
-                user.today_state['warned_chats'][str(message.chat.id)] += 1
-                user.save()
-                return
-            if user_won_this_chat_today and warned_here >= 1:
-                user.save()
-                return
-
-            user_stat = DiceEvent.objects \
-                .values('user') \
-                .filter(user=user, date__date=today, is_win=True) \
-                .annotate(sum_user=Sum('summa'))
-
-            total_user_reward = float(user_stat[0]['sum_user']) if user_stat else 0
-            settings = Tools.objects.get(pk=1)
-            warned_today = user.today_state.setdefault('warned_today', 0)
-            if total_user_reward >= settings.user_limit_day and warned_today < 1:
-                reply_to(message, 'Сегодня вы не можете больше играть.'
-                                  '\nНе нужно спамить чат, мой уважаемый друг', None)
-                user.today_state['warned_today'] += 1
-                user.save()
-                return
-            if total_user_reward >= settings.user_limit_day and warned_today >= 1:
-                user.save()
-                return
-            user.save()
-            on_dice_event(message)
+        if chat_obj.status == 'restricted':
             return
+
+        if chat_obj.status in [None, 'errored']:
+            first_msg_ts = None
+            try:
+                first_msg_ts = get_chat_creation_date(message.chat.id)
+                chat_obj.created_at = datetime.utcfromtimestamp(first_msg_ts)
+            except Exception as exc:
+                logger.error(
+                    f'\nGet chat creation date error.\n'
+                    f'id={message.chat.id} type={message.chat.type} title={message.chat.title}\n'
+                    f'{type(exc)}: {exc}')
+            if not first_msg_ts:
+                chat_obj.status_updated_at = datetime.utcnow()
+                chat_obj.status = 'errored'
+                chat_obj.save()
+                return
+            release_datetime = datetime.strptime(RELEASE_UTC_DATETIME, '%Y-%m-%d %H:%M')
+            if first_msg_ts > release_datetime.timestamp():
+                chat_obj.status_updated_at = datetime.utcnow()
+                chat_obj.status = 'restricted'
+                chat_obj.save()
+                return
+            chat_obj.status_updated_at = datetime.utcnow()
+            chat_obj.status = 'activated'
+            chat_obj.save()
+
+        # проверяем  положен ли выигрыш
+        today = date.today()
+        user = User.objects.get(pk=message.from_user.id)
+
+        user_won_this_chat_today = DiceEvent.objects.filter(
+            user=user, chat_id=message.chat.id, is_win=True, date__date=today).exists()
+
+        user.today_state.setdefault('date', str(today))
+        if user.today_state['date'] != str(today):
+            user.today_state['date'] = str(today)
+            user.today_state.pop('warned_chats', None)
+            user.today_state.pop('warned_today', None)
+
+        user.today_state.setdefault('warned_chats', {})
+        warned_here = user.today_state['warned_chats'].setdefault(str(message.chat.id), 0)
+        if user_won_this_chat_today and warned_here < 1:
+            reply_to(message, 'В этом чате вы уже не можете сегодня играть.'
+                              '\nНе нужно спамить чат, мой уважаемый друг', another_chat_markup(bot.user.username))
+            user.today_state['warned_chats'][str(message.chat.id)] += 1
+            user.save()
+            return
+        if user_won_this_chat_today and warned_here >= 1:
+            user.save()
+            return
+
+        user_stat = DiceEvent.objects \
+            .values('user') \
+            .filter(user=user, date__date=today, is_win=True) \
+            .annotate(sum_user=Sum('summa'))
+
+        total_user_reward = float(user_stat[0]['sum_user']) if user_stat else 0
+        settings = Tools.objects.get(pk=1)
+        warned_today = user.today_state.setdefault('warned_today', 0)
+        if total_user_reward >= settings.user_limit_day and warned_today < 1:
+            reply_to(message, 'Сегодня вы не можете больше играть.'
+                              '\nНе нужно спамить чат, мой уважаемый друг', None)
+            user.today_state['warned_today'] += 1
+            user.save()
+            return
+        if total_user_reward >= settings.user_limit_day and warned_today >= 1:
+            user.save()
+            return
+        user.save()
+        on_dice_event(message)
+        return
 
 
 # -----
+def is_bot_creator_in_group(m):
+    return \
+        m.chat.type in ('group', 'supergroup') and \
+        m.from_user.id in settings.ADMIN_TG_IDS
 
 
-@bot.message_handler(commands=['dice'], func=lambda m: m.from_user.id in settings.ADMIN_TG_IDS)
+def is_private(m):
+    return m.chat.type == 'private'
+
+
+@bot.message_handler(commands=['dice'], func=lambda m: is_bot_creator_in_group(m) or is_private(m))
 def dice_test(message):
     user, _ = get_user_model(message.from_user or message.reply_to_message.from_user)
 
@@ -656,4 +665,5 @@ Details:
 {pformat(details, indent=2)}
 ```
 """
-    send_message(message, response, None)
+    markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
+    send_message(message, response, markup)

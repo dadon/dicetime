@@ -22,11 +22,13 @@ $ touch dice.env  # see dice.env.sample
 # setup nginx conf (see reference conf from this repo)
 # copy /root/dicetime/db.sqlite3 from dev server to project folder (needed for db initial content setup)
 
-$ ./manage.py generate_encryption_key -> dice.env SECRET_KEY and MNEMONIC_ENCRYPTION_KEY
-$ ./manage.py migrate  # empty PG tables creation
-$ (it was needed only once) ./manage.py sqlite2pg  # copy initial data from db.sqlite to PG
+# Run it twice for SECRET_KEY and MNEMONIC_ENCRYPTION_KEY in .env
+$ ./manage.py generate_encryption_key
+$ ./manage.py createsuperuser
+$ ./manage.py migrate
 $ ./manage.py collectstatic  # css/js for admin. will use /var/www/static so make sure nginx serves it
 
+$ (it was needed only once) ./manage.py sqlite2pg  # copy initial data from db.sqlite to PG
 # tool to set/replace payout config
 $ ./manage.py setaddr seed phrase words ...
 ```

@@ -38,7 +38,9 @@ class WalletAdmin(admin.ModelAdmin):
 
 @admin.register(Tools)
 class ToolsAdmin(admin.ModelAdmin):
-    list_display = ('address', 'payload', 'coin', 'user_limit_day', 'chat_limit_day', 'total_limit_day')
+    list_display = (
+        'address', 'payload', 'coin',
+        'members_limit', 'user_limit_day', 'chat_limit_day', 'total_limit_day')
 
 
 @admin.register(DiceEvent)

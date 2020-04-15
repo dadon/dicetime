@@ -211,7 +211,7 @@ def calc_dice_reward(user, dice, chat_id):
     details['chat_limit_day'] = chat_limit_day = float(user_settings.chat_limit_day)
     details['total_limit_day'] = total_limit_day = float(user_settings.total_limit_day)
 
-    chat_size_multiplier = members / 10000
+    chat_size_multiplier = members / user_settings.members_limit
     details['chat_size_multiplier'] = 1 if chat_size_multiplier > 1 else chat_size_multiplier
     details['user_limit_multiplier'] = user_limit_multiplier = 1 - user_won_day / user_limit_day
     details['chat_limit_multiplier'] = chat_limit_multiplier = 1 - chat_won_day / chat_limit_day

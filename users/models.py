@@ -178,6 +178,9 @@ class Tools(models.Model):
         default='',
         max_length=80)
 
+    members_limit = models.PositiveIntegerField(
+        verbose_name='Число участников, при котором можно считать чат "большим"',
+        default=1000)
     user_limit_day = models.DecimalField(
         decimal_places=6, max_digits=24,
         verbose_name='Лимит таймов на одного юзера, в день',
@@ -197,9 +200,7 @@ class Tools(models.Model):
         max_length=10)
 
     class Meta:
-
-        verbose_name = 'Настройки выплат'
-        verbose_name_plural = 'Настройки выплат'
+        verbose_name = 'Конфиг: выплаты, константы, параметры'
 
 
 class DiceEvent(models.Model):

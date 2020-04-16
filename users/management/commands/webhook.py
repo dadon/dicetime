@@ -13,10 +13,17 @@ logger = logging.getLogger('Dice')
 
 
 class Command(BaseCommand):
+    def add_arguments(self, parser):
+        parser.add_argument('--delete', action='store_true')
+
     def handle(self, **options):
         wh = bot.get_webhook_info()
-        if wh.pending_update_count:
+        if wh.url:
+            logger.info(f'Stop webhook {wh.url}')
             bot.delete_webhook()
+        if wh.pending_update_count:
             bot.skip_updates()
+        if 'delete' in options:
+            return
         logger.info('Start webhook')
         bot.set_webhook(ORIGIN + 'tg/' + API_TOKEN)

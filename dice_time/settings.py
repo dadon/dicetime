@@ -188,6 +188,7 @@ LOGGING = {
             'formatter': 'verbose'
         },
         'file': {
+            'formatter': 'verbose',
             'filters': ['require_debug_false'],
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',

@@ -137,7 +137,9 @@ def set_unbond_obj(event):
 
 def notify_win(user, event, coin):
     chat_id = user.id
-    send_message(chat_id, f'Вы выиграли {event.summa} {coin}', None)
+    send_message(
+        chat_id,
+        f'Вы выиграли {Decimal(event.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)} {coin}', None)
     event.is_notified = True
     event.save()
 

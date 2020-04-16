@@ -47,9 +47,9 @@ def __update_balances(model):
         t = time()
         response = API.get_addresses(batch, pip2bip=True)['result']
         balances_to_update.update({
-            bal['address']: bal['balance'].get(coin, Decimal(0)).quantize(Decimal(0.123456))
+            bal['address']: bal['balance'].get(coin, Decimal(0)).quantize(Decimal('0.123456'), rounding=ROUND_DOWN)
             for bal in response
-            if bal['balance'].get(coin, Decimal(0)).quantize(Decimal(0.123456)) != balances[bal['address']]
+            if bal['balance'].get(coin, Decimal(0)).quantize(Decimal('0.123456'), rounding=ROUND_DOWN) != balances[bal['address']]
         })
         iter_time = time() - t
         total_time += iter_time

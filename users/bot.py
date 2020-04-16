@@ -297,7 +297,15 @@ def command_start(message):
         text = get_localized_choice(user, 1)
         document = Text.objects.get(pk=1).attachment
         bot.send_document(message.chat.id, document, caption=text, reply_markup=markup)
-
+    else:
+        text = get_localized_choice(user, pk=4)
+        markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
+        send_message(
+            message,
+            text.format(
+                user_name=user.first_name,
+                coin_ticker=Tools.objects.get(pk=1).coin),
+            markup)
 
 @bot.message_handler(func=is_chat_admin_button)
 def chat_admin(message):

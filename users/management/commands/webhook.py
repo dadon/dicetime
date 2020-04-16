@@ -23,7 +23,7 @@ class Command(BaseCommand):
             bot.delete_webhook()
         if wh.pending_update_count:
             bot.skip_updates()
-        if 'delete' in options:
+        if options['delete']:
             return
         logger.info('Start webhook')
         bot.set_webhook(ORIGIN + 'tg/' + API_TOKEN)

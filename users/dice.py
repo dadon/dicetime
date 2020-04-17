@@ -83,6 +83,9 @@ class DiceBot(TeleBot):
                 result = api_exc.result
                 result = result.json()
                 logger.info(result)
+                if result['error_code'] == 403:
+                    logger.info(f'403: skipping')
+                    return
                 if result['error_code'] == 429:
                     logger.info('429 error. sleeping')
                     sleep(result['parameters']['retry_after'])

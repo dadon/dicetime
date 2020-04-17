@@ -283,7 +283,7 @@ def on_dice_event(message):
     take_money_markup.add(types.InlineKeyboardButton(take_money_btn_text, url=url))
 
     take_money_text = get_localized_choice(user, pk=7)
-    reply_to(dice_msg, take_money_text.format(
+    reply_to(message, take_money_text.format(
         X=Decimal(reward).quantize(Decimal('0.1234'), rounding=ROUND_DOWN),
         coin_ticker=coin), take_money_markup)
     logger.info('Dice event ok.')

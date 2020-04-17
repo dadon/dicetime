@@ -311,6 +311,7 @@ def command_start(message):
                 coin_ticker=Tools.objects.get(pk=1).coin),
             markup)
 
+
 @bot.message_handler(func=is_chat_admin_button)
 def chat_admin(message):
     user, _ = get_user_model(message.from_user)

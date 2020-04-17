@@ -11,10 +11,19 @@ from users.models import User, Service
 
 from django.shortcuts import HttpResponse
 
+from .tasks import tg_webhook_task
+
 logger = logging.getLogger('Dice')
 
 
-# Telegram Webhook handler
+@csrf_exempt
+def tg_webhook_celery(request):
+    payload = request.body.decode("utf-8")
+    service, _ = Service.objects.get_or_create(pk=1)
+    tg_webhook_task.delay(payload, service.pending_updates_skip_until.timestamp())
+    return HttpResponse('OK')
+
+
 @csrf_exempt
 def tg_webhook(request):
     try:

@@ -36,4 +36,4 @@ class Command(BaseCommand):
             service.pending_updates_skip_until = now
             service.save()
         logger.info('Start webhook')
-        bot.set_webhook(ORIGIN + 'tg/' + API_TOKEN)
+        bot.set_webhook(ORIGIN + 'tg2/' + API_TOKEN)

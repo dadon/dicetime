@@ -4,7 +4,7 @@ psycopg2-binary==2.8.4
 gunicorn==19.9.0
 pytz==2019.3
 pyTelegramBotAPI==3.6.7
-minter-sdk==1.0.30
+minter-sdk==1.0.32
 django-dotenv==1.4.2
 apscheduler==3.6.3
 Pyrogram==0.16.0

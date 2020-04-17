@@ -13,3 +13,4 @@ shortuuid==1.0.1
 django-pg-bulk-update==3.2.4
 django-extensions==2.2.9
 django-encrypted-model-fields==0.5.8
+celery[redis]

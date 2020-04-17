@@ -59,7 +59,8 @@ class DiceBot(TeleBot):
             'chat_id': chat_id,
             'disable_notification': disable_notification,
             'reply_to_message_id': reply_to_message_id,
-            'reply_markup': _convert_markup(reply_markup)
+            'reply_markup': _convert_markup(reply_markup),
+            'connect-timeout': -9.5
         })
         return DiceMessage.de_json(message)
 
@@ -77,7 +78,7 @@ class DiceBot(TeleBot):
     def send_message(self, *args, **kwargs):
         for i in range(3):
             try:
-                return super(DiceBot, self).send_message(*args, **kwargs)
+                return super(DiceBot, self).send_message(*args, timeout=-9.5, **kwargs)
             except ApiException as api_exc:
                 result = api_exc.result
                 result = result.json()

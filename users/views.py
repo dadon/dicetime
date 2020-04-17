@@ -1,11 +1,13 @@
 import logging
+import traceback
+from datetime import datetime
 
 from telebot import types
 from django.views.decorators.csrf import csrf_exempt
 
 from .bot import bot
 from dal import autocomplete
-from users.models import User
+from users.models import User, Service
 
 from django.shortcuts import HttpResponse
 
@@ -15,13 +17,19 @@ logger = logging.getLogger('Dice')
 # Telegram Webhook handler
 @csrf_exempt
 def tg_webhook(request):
-    payload = request.body.decode("utf-8")
-    logger.debug(f'Update: {payload}')
-    update = types.Update.de_json(payload)
-    if update.update_id <= bot.last_update_id:
-        logger.info(f'Skipping update: {request.body.decode("utf-8")}')
-        return HttpResponse('OK')
-    bot.process_new_updates([update])
+    try:
+        service, _ = Service.objects.get_or_create(pk=1)
+        payload = request.body.decode("utf-8")
+        logger.debug(f'Update: {payload}')
+        update = types.Update.de_json(payload)
+        if update.message and datetime.utcfromtimestamp(update.message.date) <= service.pending_updates_skip_until:
+            logger.info(f'#### Skipping this update')
+            return HttpResponse('OK')
+        bot.process_new_updates([update])
+    except Exception as exc:
+        logger.error(f'{type(exc)}: {exc}')
+        logger.error(traceback.format_exc())
+
     return HttpResponse('OK')
 
 

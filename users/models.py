@@ -8,6 +8,10 @@ from .fields import JSONField
 from django.db import models
 
 
+class Service(models.Model):
+    pending_updates_skip_until = models.DateTimeField(null=True, default=None)
+
+
 class AllowedChat(models.Model):
     chat_id = models.BigIntegerField(verbose_name='Chat ID')
 

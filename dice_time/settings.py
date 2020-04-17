@@ -46,9 +46,12 @@ ALLOWED_HOSTS = [
 if LOCAL:
     ngrok_tunnels = 'http://localhost:4040/api/tunnels'
     resp = requests.get(ngrok_tunnels)
-    ngrok_url = resp.json()['tunnels'][0]['public_url']
-    ORIGIN = ngrok_url + '/'
-    ALLOWED_HOSTS.append(ORIGIN[7:-1])
+    for tun in resp.json()['tunnels']:
+        if tun['proto'] == 'https':
+            ngrok_url = tun['public_url']
+            ORIGIN = ngrok_url + '/'
+            ALLOWED_HOSTS.append(ORIGIN[7:-1])
+            break
 
 
 # Application definition

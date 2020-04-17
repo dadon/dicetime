@@ -14,7 +14,7 @@ from users.tools import log_setup
 
 scheduler = BlockingScheduler()
 # log_setup(logging.DEBUG)
-logger = logging.getLogger('Dice')
+logger = logging.getLogger('DiceJobs')
 
 BALANCE_API_BATCH_SIZE = 155
 BALANCE_JOB_GET_BATCH_SIZE = 2500

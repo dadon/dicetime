@@ -592,7 +592,7 @@ def my_wallet(message):
     redeem_tx = MinterRedeemCheckTx(check_str, check_obj.proof(wallet.address, ''), nonce=1, gas_coin=coin)
     redeem_tx.sign(private_key)
     redeem_tx_fee = API.estimate_tx_commission(redeem_tx.signed_tx, pip2bip=True)['result']['commission']
-    logger.debug(f'Wallet balance: {amount}')
+    logger.debug(f'Wallet {wallet.address} balance: {amount}')
     logger.info(f'Redeem check tx fee: {redeem_tx_fee}')
     available_withdraw = amount - redeem_tx_fee
 
@@ -614,8 +614,11 @@ def my_wallet(message):
             nonce=1, due_block=999999999, coin=coin, value=available_withdraw, gas_coin=coin,
             passphrase=passphrase)
         check_str = check_obj.sign(private_key)
-        redeem_tx = MinterRedeemCheckTx(check_str, proof='', nonce=1, gas_coin=coin)
-        redeem_url = MinterDeeplink(redeem_tx, data_only=True).generate(password=passphrase)
+        redeem_tx = MinterRedeemCheckTx(check_str, proof='', nonce=nonce, gas_coin=coin)
+        redeem_dl = MinterDeeplink(redeem_tx, data_only=True)
+        redeem_dl.gas_coin = coin
+        redeem_url = redeem_dl.generate(password=passphrase)
+        logger.info(redeem_url)
 
     if available_send > 0:
         user_address = get_user_timeloop_address(message.chat.id)

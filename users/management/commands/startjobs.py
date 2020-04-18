@@ -87,9 +87,9 @@ def __update_balances(model):
             diff = balances_diff[chat_wallet.address]
             if diff <= 0:
                 continue
-            bot.send_message(
-                chat_wallet.chat.creator.id,
-                f'Баланс чата {chat_wallet.chat.title_chat} пополнен на {diff} {chat_wallet.chat.coin}')
+            txt = f'Баланс чата {chat_wallet.chat.title_chat} пополнен на {diff} {chat_wallet.chat.coin}'
+            bot.send_message(chat_wallet.chat.creator.id, txt)
+            bot.send_message(chat_wallet.chat.chat_id, txt)
     logger.info(f'Updated in {time() - t} seconds.')
     logger.info('--------------------------')
 

@@ -223,7 +223,7 @@ def calc_dice_reward_local(user, chat_local, details):
                 date__date=details['today'], chat_id=chat_local.chat_id,
                 is_win=True, is_local=True, coin=chat_local.coin) \
             .aggregate(chat_sum=Sum('summa'))
-        chat_won_day = float(chat_stat['chat_sum']) or 0
+        chat_won_day = float(chat_stat['chat_sum'] or 0)
         details['chat_won_local'] = chat_won_day
         chat_limit_multiplier = max(1 - chat_won_day / chat_limit_day, 0)
     else:

@@ -140,9 +140,13 @@ def local_chat_pay():
     for gift in gifts:
         logging.info(f'Local gift payment ({gift.wallet_local.chat.title_chat}):')
         wallet = MinterWallet.create(mnemonic=gift.wallet_local.mnemonic)
+        balance_bip = API.get_balance(wallet['address'], pip2bip=True)['result']['balance'].get('BIP')
+        gas_coin = gift.coin
+        if balance_bip >= 0.01:
+            gas_coin = 'BIP'
         response = send(
             wallet, gift.to, gift.coin, gift.amount,
-            gas_coin=gift.coin, payload=settings.payload + ' (chat owner bonus)')
+            gas_coin=gas_coin, payload=settings.payload + ' (chat owner bonus)')
         if 'error' not in response:
             gift.is_payed = True
             gift.save()

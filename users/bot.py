@@ -237,6 +237,9 @@ def calc_dice_reward_local(user, chat_local, details):
     reward = user_limit_day * details['user_reputation'] * \
         dice_multiplier * user_limit_multiplier * chat_limit_multiplier
 
+    if reward <= 0:
+        return 0
+
     reward_bip = coin_convert(chat_local.coin, reward, 'BIP')
     if 0 < reward_bip < 0.05:
         reward_bip = 0.05

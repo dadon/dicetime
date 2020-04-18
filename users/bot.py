@@ -16,6 +16,7 @@ from mintersdk.sdk.wallet import MinterWallet
 from shortuuid import uuid
 from telebot.types import CallbackQuery
 
+from celery_app import app
 from .dice import DiceBot, get_chat_creation_date
 from .minter import send, API, wallet_balance, coin_convert
 from .models import *
@@ -133,6 +134,47 @@ def set_unbond_obj(event, wallet_local=None):
         coin=event.coin,
         amount=event.summa,
         wallet_local=wallet_local)
+
+
+@app.task
+def minter_send_coins(
+        w_from, address_to, coin, amount,
+        group_chat_id, tg_id_sender, tg_id_receiver, markdown_sender, markdown_receiver):
+    logger.info('--- P2P Send Coin ---')
+    r = send(w_from, address_to, coin, amount, gas_coin=coin)
+    logger.info(f'--- P2P Send Result: {r} ---')
+    if 'error' not in r:
+        text = f'{markdown_sender} отправил вам {amount} {coin}'
+        text_sender = f'Вы отправили {markdown_receiver} {amount} {coin}'
+        bot.send_message(tg_id_sender, text_sender, parse_mode='markdown')
+        msg = bot.send_message(tg_id_receiver, text, parse_mode='markdown')
+        if msg == 403:
+            text = f'{markdown_sender} отправил {markdown_receiver} {amount} {coin}'
+            bot.send_message(group_chat_id, text, parse_mode='markdown')
+
+    if 'error' in r and r['error'].get('tx_result', {}).get('code') == 107:
+        no_coins_text = f'Недостаточно монет {coin} на вашем кошельке'
+        bot.send_message(tg_id_sender, no_coins_text)
+
+def send_coins(message, sender, receiver):
+    msg_parts = list(filter(None, str(message.text).lower().split(' ')))
+    if len(msg_parts) < 2:
+        return
+    if msg_parts[0] != 'send':
+        return
+    try:
+        amount = float(msg_parts[1])
+    except Exception:
+        return
+
+    coin = 'TIME' if len(msg_parts) == 2 else msg_parts[2].upper()
+
+    w_from = MinterWallets.objects.get(user=sender)
+    w_to = MinterWallets.objects.get(user=receiver)
+    mw_from = MinterWallet.create(w_from.mnemonic)
+    minter_send_coins.delay(
+        mw_from, w_to.address, coin, amount,
+        message.chat.id, sender.id, receiver.id, sender.profile_markdown, receiver.profile_markdown)
 
 
 def notify_win(user, event, event_local=None):
@@ -413,7 +455,7 @@ def chat_admin(message):
         send_message(message, text, another_chat_markup(bot.user.username, button_text))
         return
 
-    text = 'Чаты'
+    text = 'Чаты, в которых вы создатель'
     msg = message.message if isinstance(message, CallbackQuery) else message
     markup = chat_list_markup(chats)
     if isinstance(message, CallbackQuery):
@@ -633,6 +675,11 @@ def reply_handler(message):
     user.reply_count += 1
     user.save()
 
+    if message.text.strip().startswith('send'):
+        sender, _ = get_user_model(sender_user)
+        send_coins(message, sender, user)
+        return
+
     if len(message.text) > 20:
         return
 
@@ -774,7 +821,11 @@ def is_private(m):
 
 @bot.message_handler(commands=['dice'], func=lambda m: is_bot_creator_in_group(m) or is_private(m))
 def dice_test(message):
-    user, _ = get_user_model(message.from_user or message.reply_to_message.from_user)
+    from_ = message.from_user
+    if message.reply_to_message:
+        from_ = message.reply_to_message.from_user
+
+    user, _ = get_user_model(from_)
 
     args = message.text.split(' ')[1:]
     dice, chat_id = None, message.chat.id

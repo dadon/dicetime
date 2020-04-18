@@ -115,6 +115,14 @@ class User(models.Model):
         return '{name} #{id}'.format(
             id=self.id, name=self.username or self.first_name)
 
+    @property
+    def profile_url(self):
+        return f'tg://user?id={self.id}'
+
+    @property
+    def profile_markdown(self):
+        return f'[{self.username or self.first_name}]({self.profile_url})'
+
 
 class ChatWallet(models.Model):
     objects = BulkUpdateManager()

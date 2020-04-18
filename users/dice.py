@@ -85,7 +85,7 @@ class DiceBot(TeleBot):
                 logger.info(result)
                 if result['error_code'] == 403:
                     logger.info(f'403: skipping')
-                    return
+                    return 403
                 if result['error_code'] == 429:
                     logger.info('429 error. sleeping')
                     sleep(result['parameters']['retry_after'])

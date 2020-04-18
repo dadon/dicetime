@@ -4,7 +4,7 @@ import traceback
 from telebot import types
 
 from celery_app import app
-from users.bot import bot
+from .bot import bot
 
 logger = logging.getLogger('Dice')
 

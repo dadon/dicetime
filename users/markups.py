@@ -52,11 +52,12 @@ def chat_list_markup(chats):
 
 def chat_actions_markup(chat):
     markup = types.InlineKeyboardMarkup(row_width=1)
-    u_limit_text = f'Лимит на юзера в день ({chat.user_limit_day})'
-    c_limit_text = f'Лимит на чат в день ({chat.chat_limit_day})'
+    u_limit_text = f'Лимит на юзера в день ({chat.user_limit_day} {chat.coin})'
+    c_limit_text = f'Лимит на чат в день ({chat.chat_limit_day} {chat.coin})'
     dice_time_text = f'Dice Time ({chat.dice_time_from.strftime("%H:%M")} - {chat.dice_time_to.strftime("%H:%M")})'
     markup.add(
         types.InlineKeyboardButton(u_limit_text, callback_data=f'set.ulimit.{chat.chat_id}'),
         types.InlineKeyboardButton(c_limit_text, callback_data=f'set.climit.{chat.chat_id}'),
-        types.InlineKeyboardButton(dice_time_text, callback_data=f'set.dt.{chat.chat_id}'))
+        types.InlineKeyboardButton(dice_time_text, callback_data=f'set.dt.{chat.chat_id}'),
+        types.InlineKeyboardButton('Назад', callback_data='set.back'))
     return markup

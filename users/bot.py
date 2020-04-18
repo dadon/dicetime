@@ -120,28 +120,50 @@ def get_user_model(tg_user):
     return user, is_created
 
 
-def set_unbond_obj(event):
+def set_unbond_obj(event, wallet_local=None):
     if not event.summa:
         return
     event.is_payed = True
     event.save()
     wallet_to = MinterWallets.objects.get(user=event.user).address
-    coin = str(Tools.objects.get(pk=1).coin)
     Payment.objects.create(
         user=event.user,
         event=event,
         to=wallet_to,
-        coin=coin,
-        amount=event.summa)
+        coin=event.coin,
+        amount=event.summa,
+        wallet_local=wallet_local)
 
 
-def notify_win(user, event, coin):
+def notify_win(user, event, event_local=None):
     chat_id = user.id
+    reward = Decimal(event.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)
+    local_text = ''
+    if event_local:
+        reward_local = Decimal(event_local.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)
+        local_text = f' + {reward_local} {event_local.coin}'
     send_message(
         chat_id,
-        f'Вы выиграли {Decimal(event.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)} {coin}', None)
+        f'Вы выиграли {reward} {event.coin}' + local_text, None)
     event.is_notified = True
     event.save()
+
+
+def button_win(user, dice_msg, event, event_local=None):
+    url = f'https://telegram.me/{bot.user.username}'
+    take_money_markup = types.InlineKeyboardMarkup(row_width=1)
+    take_money_btn_text = get_localized_choice(user, pk=5)
+    take_money_markup.add(types.InlineKeyboardButton(take_money_btn_text, url=url))
+
+    reward = Decimal(event.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)
+    take_money_text = get_localized_choice(user, pk=7)
+    if event_local:
+        reward_local = Decimal(event_local.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)
+        take_money_text += f' + {reward_local} {event_local.coin}'
+
+    reply_to(dice_msg, take_money_text.format(
+        X=Decimal(reward).quantize(Decimal('0.1234'), rounding=ROUND_DOWN),
+        coin_ticker=event.coin), take_money_markup)
 
 
 def check_pending_notification(user, message):
@@ -172,6 +194,56 @@ def wilson_score(up, down, z=1.64485):
         z * ((up_rate * (1 - up_rate) + z ** 2 / (4 * total)) / total) ** 0.5) / (1 + z ** 2 / total)
 
 
+def calc_dice_reward_local(user, chat_local, details):
+    if details['blacklisted'] or details['is_chat_win']:
+        return 0
+
+    details['user_limit_day_local'] = user_limit_day = float(chat_local.user_limit_day)
+    details['chat_limit_day_local'] = chat_limit_day = float(chat_local.chat_limit_day)
+
+    if user_limit_day > 0:
+        user_stat = DiceEvent.objects \
+            .values('chat_id') \
+            .filter(
+                user=user, date__date=details['today'],
+                is_win=True, is_local=True, coin=chat_local.coin) \
+            .annotate(chat_sum_user=Sum('summa'))
+
+        user_won_day = 0
+        for aggregation in user_stat:
+            user_won_day += float(aggregation['chat_sum_user'])
+        details['user_won_day_local'] = user_won_day
+        user_limit_multiplier = max(1 - user_won_day / user_limit_day, 0)
+    else:
+        user_limit_multiplier = 1
+
+    if chat_limit_day > 0:
+        chat_stat = DiceEvent.objects \
+            .filter(
+                date__date=details['today'], chat_id=chat_local.chat_id,
+                is_win=True, is_local=True, coin=chat_local.coin) \
+            .aggregate(chat_sum=Sum('summa'))
+        chat_won_day = chat_stat['chat_sum'] or 0
+        details['chat_won_local'] = chat_won_day
+        chat_limit_multiplier = max(1 - chat_won_day / chat_limit_day, 0)
+    else:
+        chat_limit_multiplier = 1
+
+    details['user_limit_multtiplier'] = user_limit_multiplier
+    details['chat_limit_multtiplier'] = chat_limit_multiplier
+
+    details['dice_multiplier_local'] = dice_multiplier = details['dice_multiplier'] / 5
+
+    reward = user_limit_day * details['user_reputation'] * \
+        dice_multiplier * user_limit_multiplier * chat_limit_multiplier
+
+    reward_bip = coin_convert(chat_local.coin, reward, 'BIP')
+    if 0 < reward_bip < 0.05:
+        reward_bip = 0.05
+        reward = coin_convert('BIP', reward_bip, chat_local.coin)
+    return reward
+
+
 # проверка на blacklist или выигрыш в данном чате сегодня + расчет формулы
 def calc_dice_reward(user, dice, chat_id):
     details = {}
@@ -185,7 +257,7 @@ def calc_dice_reward(user, dice, chat_id):
 
     user_stat = DiceEvent.objects \
         .values('chat_id') \
-        .filter(user=user, date__date=today, is_win=True) \
+        .filter(user=user, date__date=today, is_win=True, is_local=False) \
         .annotate(chat_sum_user=Sum('summa'))
 
     user_won_day = 0
@@ -196,12 +268,10 @@ def calc_dice_reward(user, dice, chat_id):
             is_chat_win = True
     details['user_won_day'] = user_won_day
     details['is_chat_win'] = is_chat_win
-    if is_chat_win:
-        return 0, details
 
     chat_stat = DiceEvent.objects \
         .values('chat_id') \
-        .filter(date__date=today, is_win=True) \
+        .filter(date__date=today, is_win=True, is_local=False) \
         .annotate(chat_sum=Sum('summa'))
     chat_stat = {d['chat_id']: d['chat_sum'] for d in chat_stat}
 
@@ -234,6 +304,9 @@ def calc_dice_reward(user, dice, chat_id):
     details['user_influence'] = None
     details['user_lifetime'] = None
 
+    if is_chat_win:
+        return 0, details
+
     reward = dice_multiplier * chat_size_multiplier * \
         user_limit_multiplier * chat_limit_multiplier * \
         total_limit_multiplier * (user_reputation + 1)
@@ -249,8 +322,10 @@ def calc_dice_reward(user, dice, chat_id):
 
 
 def on_dice_event(message):
-    coin = Tools.objects.get(pk=1).coin
     user, _ = get_user_model(message.from_user)
+    chat_local = AllowedChat.objects.filter(chat_id=message.chat.id, status='activated').first()
+    wallet_local = ChatWallet.objects.filter(chat=chat_local).first()
+
     logger.info(f'Dice event start. {user} in chat#{message.chat.id} "{message.chat.title}"')
 
     dice_msg = bot.send_dice(
@@ -260,7 +335,6 @@ def on_dice_event(message):
     logger.info(f'Dice: {dice_msg.dice_value}')
 
     reward, details = calc_dice_reward(user, dice_msg.dice_value, message.chat.id)
-    logger.info(f'\nReward: {reward}\nDetails:\n{pformat(details)}\n')
 
     is_win = bool(reward)
     event = DiceEvent.objects.create(
@@ -269,23 +343,35 @@ def on_dice_event(message):
         title_chat=message.chat.title,
         link_chat=message.chat.username,
         summa=reward,
-        is_win=is_win)
+        is_win=is_win,
+        is_local=False)
+
     if not is_win:
         return
 
+    event_local = None
+    if chat_local and wallet_local and wallet_local.balance > 0:
+        reward_local = calc_dice_reward_local(user, chat_local, details)
+        event_local = DiceEvent.objects.create(
+            user=user,
+            chat_id=message.chat.id,
+            title_chat=message.chat.title,
+            link_chat=message.chat.username,
+            summa=reward_local,
+            is_win=is_win,
+            is_local=True,
+            coin=chat_local.coin)
+
+    logger.info(f'\nReward: {reward}\nDetails:\n{pformat(details)}\n')
+
     logger.info('Schedule payment + notify')
     set_unbond_obj(event)
-    notify_win(user, event, coin=coin)
+    if event_local:
+        set_unbond_obj(event_local, wallet_local=wallet_local)
 
-    url = f'https://telegram.me/{bot.user.username}'
-    take_money_markup = types.InlineKeyboardMarkup(row_width=1)
-    take_money_btn_text = get_localized_choice(user, pk=5)
-    take_money_markup.add(types.InlineKeyboardButton(take_money_btn_text, url=url))
+    notify_win(user, event, event_local=event_local)
+    button_win(user, dice_msg, event, event_local=event_local)
 
-    take_money_text = get_localized_choice(user, pk=7)
-    reply_to(dice_msg, take_money_text.format(
-        X=Decimal(reward).quantize(Decimal('0.1234'), rounding=ROUND_DOWN),
-        coin_ticker=coin), take_money_markup)
     logger.info('Dice event ok.')
 
 
@@ -313,17 +399,26 @@ def command_start(message):
 
 
 @bot.message_handler(func=is_chat_admin_button)
+@bot.callback_query_handler(func=lambda call: call.data == 'set.back')
 def chat_admin(message):
     user, _ = get_user_model(message.from_user)
     chats = AllowedChat.objects.filter(creator=user, status='activated')
     if not chats:
         text = 'Вы должны быть создателем одного из чатов, в котором работает этот бот'
         button_text = 'Выберите чат'
+        message = message.message if isinstance(message, CallbackQuery) else message
         send_message(message, text, another_chat_markup(bot.user.username, button_text))
         return
 
     text = 'Чаты'
-    send_message(message, text, chat_list_markup(chats))
+    msg = message.message if isinstance(message, CallbackQuery) else message
+    markup = chat_list_markup(chats)
+    if isinstance(message, CallbackQuery):
+        bot.edit_message_text(
+            text, msg.chat.id, msg.message_id,
+            reply_markup=markup, parse_mode='markdown')
+        return
+    send_message(message, text, markup)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('admin.'))
@@ -349,7 +444,7 @@ def send_chat_detail(root_message, chat):
     text = f'''
 Адрес кошелька чата: `{chat_wallet.address}`
 Seed: `{chat_wallet.mnemonic}`
-Баланс: {chat_wallet.balance}'''
+Баланс: {chat_wallet.balance} {chat.coin}'''
     markup = chat_actions_markup(chat)
     bot.edit_message_text(
         text, root_message.chat.id, root_message.message_id,
@@ -385,14 +480,11 @@ def chat_setting(call):
         return
 
     prompt_txt = chat_setting_prompt(user, setting)
-    markup = cancel_markup()
+    # markup = cancel_markup()
     cid, mid = call.message.chat.id, call.message.message_id
-    bot.edit_message_text(prompt_txt, cid, mid, reply_markup=markup, parse_mode='markdown')
+    bot.edit_message_text(prompt_txt, cid, mid, parse_mode='markdown')
 
     def _set_chat_param(update):
-        if isinstance(update, CallbackQuery) and update.data == 'back':
-            send_chat_detail(call.message, chat)
-            return
         bot.delete_message(update.chat.id, update.message_id)
         try:
             if setting == 'dt':
@@ -646,7 +738,7 @@ def handle_messages(message):
 
         user_stat = DiceEvent.objects \
             .values('user') \
-            .filter(user=user, date__date=today, is_win=True) \
+            .filter(user=user, date__date=today, is_win=True, is_local=False) \
             .annotate(sum_user=Sum('summa'))
 
         total_user_reward = float(user_stat[0]['sum_user']) if user_stat else 0

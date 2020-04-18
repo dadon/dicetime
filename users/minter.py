@@ -64,5 +64,7 @@ def wallet_balance(address, with_nonce=False):
 
 
 def coin_convert(coin, amount, to):
+    if coin == to:
+        return amount
     result = API.estimate_coin_sell(coin, amount, to, pip2bip=True)['result']
     return float(result['will_get'])

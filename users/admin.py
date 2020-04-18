@@ -46,7 +46,7 @@ class ToolsAdmin(admin.ModelAdmin):
 @admin.register(DiceEvent)
 class DiceEventAdmin(admin.ModelAdmin):
     list_display = (
-        'user', 'date', 'summa', 'is_win', 'is_payed',
+        'user', 'date', 'coin', 'summa', 'is_local', 'is_win', 'is_payed',
         'chat_id', 'title_chat', 'link_chat',
     )
     search_fields = ['chat_id', 'user', 'date', 'title_chat']

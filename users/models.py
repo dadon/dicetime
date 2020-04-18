@@ -59,6 +59,10 @@ class AllowedChat(models.Model):
     dice_time_to = models.TimeField(
         verbose_name='Dice Time (to)',
         default=time(hour=23, minute=59, second=59))
+    coin = models.CharField(
+        verbose_name='Монета чата',
+        default='TIME',
+        max_length=10)
 
     def __str__(self):
         return f'Chat#{self.chat_id} {self.title_chat} status={self.status} status_updated_at={self.status_updated_at}'
@@ -250,6 +254,13 @@ class DiceEvent(models.Model):
         verbose_name='Прислано уведомление об оплате',
         default=False)
 
+    is_local = models.BooleanField(
+        verbose_name='Локальный выигрыш',
+        default=False)
+
+    coin = models.CharField(
+        max_length=10, verbose_name='Монета выигрыша', default='TIME')
+
     class Meta:
         verbose_name = 'Бросок кубика'
         verbose_name_plural = 'Броски кубика'
@@ -305,6 +316,10 @@ class Payment(models.Model):
     is_notified = models.BooleanField(
         verbose_name='Прислано уведомление об оплате',
         default=False)
+
+    wallet_local = models.ForeignKey(
+        ChatWallet,
+        on_delete=models.CASCADE, null=True, default=None)
     
     def __str__(self):
         return f' {self.user}'

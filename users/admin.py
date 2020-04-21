@@ -67,3 +67,8 @@ class TriggersAdmin(admin.ModelAdmin):
     list_display_links = None
     list_display = 'phrase', 'action', 'exact'
     list_editable = 'phrase', 'action', 'exact'
+
+
+@admin.register(AllowedChat)
+class ChatAdmin(admin.ModelAdmin):
+    list_display = 'chat_id', 'title_chat', 'link_chat', 'status', 'creator'

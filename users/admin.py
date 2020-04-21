@@ -76,6 +76,7 @@ class TriggersAdmin(admin.ModelAdmin):
 class ChatAdmin(admin.ModelAdmin):
     list_display = 'chat_id', 'title_chat', 'link_chat', 'status', 'creator'
     actions = ["export_as_csv"]
+
     def export_as_csv(self, request, queryset):
         meta = self.model._meta
         field_names = [field.name for field in meta.fields]

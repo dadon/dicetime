@@ -29,14 +29,21 @@ class Command(BaseCommand):
     def handle(self, **options):
 
         logger.info('Start send messages')
-        import ipdb; ipdb.set_trace()
+
         if options['test']:
             users = User.objects.filter(id__in=ADMIN_TG_IDS)
         else:
             users = User.objects.all()
 
         uids = [u.id for u in users]
+        count403 = 0
+        count_success = 0
         for user_batch in [[uid for uid in uids[i: i + 30]] for i in range(0, len(uids), 30)]:
             for uid in user_batch:
-                bot.send_message(uid, MESSAGE, disable_web_page_preview=True)
+                result = bot.send_message(uid, MESSAGE, disable_web_page_preview=True)
+                if result == 403:
+                    count403 += 1
+                elif result:
+                    count_success += 1
             sleep(1)
+            logger.info(f'Sent batch. count403={count403} count_success={count_success}')

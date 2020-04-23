@@ -17,7 +17,7 @@ logger = logging.getLogger('Dice')
 
 @retry(Exception, tries=5, delay=0.5, backoff=1)
 def get_chat_creation_date(chat_id):
-    with Client(':memory:', api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN) as app:
+    with Client('pyrosession', api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN) as app:
         try:
             response = app.send(GetChats(id=[abs(chat_id)]))
             chat_date = response.chats[0].date

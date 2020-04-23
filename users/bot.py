@@ -352,6 +352,9 @@ def calc_dice_reward(user, dice, chat_id):
     if is_chat_win:
         return 0, details
 
+    if chat_size_multiplier < 0 or user_limit_multiplier < 0 or chat_limit_multiplier < 0 or total_limit_multiplier < 0:
+        return 0, details
+
     reward = dice_multiplier * chat_size_multiplier * \
         user_limit_multiplier * chat_limit_multiplier * \
         total_limit_multiplier * (user_reputation + 1)

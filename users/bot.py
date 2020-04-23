@@ -286,7 +286,7 @@ def calc_dice_reward_local(user, chat_local, details):
     if 0 < reward_bip < 0.05:
         reward_bip = 0.05
         reward = coin_convert('BIP', reward_bip, chat_local.coin)
-    return reward
+    return max(0, reward)
 
 
 # проверка на blacklist или выигрыш в данном чате сегодня + расчет формулы
@@ -363,7 +363,7 @@ def calc_dice_reward(user, dice, chat_id):
     if 0 < reward_bip < 0.05:
         reward_bip = 0.05
         reward = coin_convert('BIP', reward_bip, user_settings.coin)
-    return reward, details
+    return max(0, reward), details
 
 
 def on_dice_event(message):

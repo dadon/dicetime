@@ -212,6 +212,16 @@ LOGGING = {
             'utc': 'True',
             'backupCount': 7
         },
+        'minter': {
+            'formatter': 'verbose',
+            'filters': ['require_debug_false'],
+            'level': 'DEBUG',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': 'jobs.log',
+            'when': 'midnight',
+            'utc': 'True',
+            'backupCount': 7
+        },
     },
     # 'root': {
     #     'handlers': ['console'],
@@ -233,6 +243,11 @@ LOGGING = {
         },
         'DiceJobs': {
             'handlers': ['console', 'jobs'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
+        'DiceMinter': {
+            'handlers': ['console', 'minter'],
             'level': 'DEBUG',
             'propagate': False
         }

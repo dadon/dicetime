@@ -9,7 +9,7 @@ from requests import ReadTimeout, ConnectTimeout, HTTPError
 from dice_time.settings import LOCAL, LOCAL_REAL_TXS
 from users.tools import retry
 
-logger = logging.getLogger('Dice')
+logger = logging.getLogger('DiceMinter')
 
 
 class MinterRetryAPI(MinterAPI):

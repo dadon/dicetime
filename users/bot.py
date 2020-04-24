@@ -690,7 +690,7 @@ def reply_handler(message):
     user.reply_count += 1
     user.save()
 
-    if message.text.strip().startswith('send'):
+    if message.text.strip().lower().startswith('send'):
         sender, _ = get_user_model(sender_user)
         send_coins(message, sender, user)
         return

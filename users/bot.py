@@ -863,6 +863,18 @@ def dice_test(message):
     _dice_test(user, message)
 
 
+@bot.message_handler(commands=['disable'], func=lambda m: is_bot_creator_in_group(m))
+def dice_restrict(message):
+    chat_obj, _ = AllowedChat.objects.get_or_create(
+        chat_id=message.chat.id,
+        defaults={
+            'link_chat': message.chat.username,
+            'title_chat': message.chat.title
+        })
+    chat_obj.status = 'restricted'
+    chat_obj.save()
+
+
 @bot.message_handler(commands=['del'], func=lambda m: is_bot_creator_in_group(m))
 def dice_del(message):
     user, _ = get_user_model(message.from_user)

@@ -92,6 +92,16 @@ def reply_to(message, text, markup):
 # ----
 
 
+def get_chat_model(tg_chat):
+    chat_obj, is_created = AllowedChat.objects.get_or_create(
+        chat_id=tg_chat.id,
+        defaults={
+            'link_chat': tg_chat.username,
+            'title_chat': tg_chat.title
+        })
+    return chat_obj, is_created
+
+
 def get_user_model(tg_user):
     ru_lang = Language.objects.get(pk=1)
     en_lang = Language.objects.get(pk=2)
@@ -691,6 +701,12 @@ def reply_handler(message):
     user.save()
 
     if message.text.strip().lower().startswith('send'):
+        # 777000=Telegram. This is channel post
+        if receiver_user.id == 777000:
+            chat_obj, _ = get_chat_model(message.chat)
+            user = chat_obj.creator
+        if user.id == sender_user.id:
+            return
         sender, _ = get_user_model(sender_user)
         send_coins(message, sender, user)
         return
@@ -865,14 +881,9 @@ def dice_test(message):
 
 @bot.message_handler(commands=['disable'], func=lambda m: is_bot_creator_in_group(m))
 def dice_restrict(message):
-    chat_obj, _ = AllowedChat.objects.get_or_create(
-        chat_id=message.chat.id,
-        defaults={
-            'link_chat': message.chat.username,
-            'title_chat': message.chat.title
-        })
-    chat_obj.status = 'restricted'
-    chat_obj.save()
+    chat, _ = get_chat_model(message.chat)
+    chat.status = 'restricted'
+    chat.save()
 
 
 @bot.message_handler(commands=['del'], func=lambda m: is_bot_creator_in_group(m))
@@ -881,3 +892,4 @@ def dice_del(message):
     today = date.today()
     DiceEvent.objects.filter(user=user, date__date=today, is_win=True).update(is_win=False)
     send_message(message, 'Сегодняшние выигрыши уже не выигрыши', None)
+

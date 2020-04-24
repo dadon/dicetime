@@ -156,6 +156,7 @@ def minter_send_coins(
         no_coins_text = f'Недостаточно монет {coin} на вашем кошельке'
         bot.send_message(tg_id_sender, no_coins_text)
 
+
 def send_coins(message, sender, receiver):
     msg_parts = list(filter(None, str(message.text).lower().split(' ')))
     if len(msg_parts) < 2:
@@ -681,6 +682,11 @@ def reply_handler(message):
     if sender_user.id == receiver_user.id:
         return
     user, _ = get_user_model(receiver_user)
+
+    if message.text == '/dice':
+        _dice_test(user, message)
+        return
+
     user.reply_count += 1
     user.save()
 
@@ -828,14 +834,7 @@ def is_private(m):
     return m.chat.type == 'private'
 
 
-@bot.message_handler(commands=['dice'], func=lambda m: is_bot_creator_in_group(m) or is_private(m))
-def dice_test(message):
-    from_ = message.from_user
-    if message.reply_to_message:
-        from_ = message.reply_to_message.from_user
-
-    user, _ = get_user_model(from_)
-
+def _dice_test(user, message):
     args = message.text.split(' ')[1:]
     dice, chat_id = None, message.chat.id
     if len(args) == 1 and args[0].isdigit():
@@ -845,16 +844,23 @@ def dice_test(message):
 
     reward, details = calc_dice_reward(user, dice, chat_id)
     response = f"""
-Dice testdata for [{user.username or user.first_name}](tg://user?id={user.pk})
-```
-Dice: {dice!s}
-Reward: {reward!s}
-Details:
-{pformat(details, indent=2)}
-```
-"""
+    Dice testdata for [{user.username or user.first_name}](tg://user?id={user.pk})
+    ```
+    Dice: {dice!s}
+    Reward: {reward!s}
+    Details:
+    {pformat(details, indent=2)}
+    ```
+    """
     markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
     send_message(message, response, markup if message.chat.type == 'private' else KB_REMOVE)
+
+
+@bot.message_handler(func=lambda m: is_bot_creator_in_group(m) or is_private(m))
+def dice_test(message):
+    from_ = message.from_user
+    user, _ = get_user_model(from_)
+    _dice_test(user, message)
 
 
 @bot.message_handler(commands=['del'], func=lambda m: is_bot_creator_in_group(m))

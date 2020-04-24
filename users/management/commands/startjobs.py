@@ -57,32 +57,23 @@ def __update_balances(model):
         for bal in response:
             addr_coin = chat_wallet_coins.get(bal['address'], coin)
             new_balance = bal['balance'].get(addr_coin, Decimal(0)).quantize(Decimal('0.123456'), rounding=ROUND_DOWN)
+            balances_to_update[bal['address']] = {'balance_updated_at': datetime.utcnow()}
+            balances_to_update[bal['address']]['balance'] = new_balance
             if new_balance != balances[bal['address']]:
-                balances_to_update[bal['address']] = new_balance
                 balances_diff[bal['address']] = new_balance - balances[bal['address']]
 
         iter_time = time() - t
         total_time += iter_time
         logger.info(f'Get addresses {len(batch)}: iter={iter_time}, total={total_time}')
 
-    if not balances_to_update:
-        logger.info(f'No balance changes')
-        return
-
-    logger.info(f'Updating {len(balances_to_update)} rows...')
-    now = datetime.utcnow()
     t = time()
-    to_update.pg_bulk_update({
-        address: {
-            'balance': balance,
-            'balance_updated_at': now
-        } for address, balance in balances_to_update.items()
-    }, key_fields='address', batch_size=BALANCE_JOB_UPD_BATCH_SIZE)
+    logger.info(f'Updating {len(balances_to_update)} rows...')
+    to_update.pg_bulk_update(balances_to_update, key_fields='address', batch_size=BALANCE_JOB_UPD_BATCH_SIZE)
 
     if model == ChatWallet:
         logger.info(f'Diffs: {balances_diff}')
         for chat_wallet in to_update:
-            if chat_wallet.address not in balances_to_update:
+            if chat_wallet.address not in balances_diff:
                 continue
             diff = balances_diff[chat_wallet.address]
             if diff <= 0:

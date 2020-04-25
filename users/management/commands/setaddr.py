@@ -5,10 +5,8 @@ from mintersdk.sdk.wallet import MinterWallet
 
 from users.models import Tools
 
-from users.tools import log_setup
 
 logger = logging.getLogger('Dice')
-# log_setup(logging.DEBUG)
 
 
 class Command(BaseCommand):

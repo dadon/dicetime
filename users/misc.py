@@ -1,30 +1,17 @@
 import logging
-import sys
+from decimal import Decimal, ROUND_DOWN
 from functools import wraps
 
-from logging.handlers import TimedRotatingFileHandler
 from time import sleep
 from typing import Union, Iterable, Callable
 
-from dice_time.settings import LOCAL
 
-
-def log_setup(loglevel=logging.INFO, loggers=['Dice', 'TeleBot']):
-    log_fmt = '%(asctime)s (%(filename)s:%(lineno)d %(threadName)s) %(levelname)s - %(name)s: "%(message)s"'
-    formatter = logging.Formatter(log_fmt)
-    handlers = [logging.StreamHandler(sys.stdout)]
-    if not LOCAL:
-        handlers.append(TimedRotatingFileHandler(
-            "debug.log", when='midnight', utc=True, backupCount=7))
-
-    for h in handlers:
-        h.setFormatter(formatter)
-        for l_name in loggers:
-            logger = logging.getLogger(l_name)
-            logger.setLevel(loglevel)
-            if l_name != 'TeleBot':
-                logger.addHandler(h)
-
+def truncate(number, rounding):
+    if isinstance(number, float):
+        number = Decimal(number)
+    if isinstance(number, Decimal):
+        return number.quantize(Decimal(f'0.{"1"*rounding}'), rounding=ROUND_DOWN)
+    return number
 
 
 def retry(

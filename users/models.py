@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import time
 from decimal import Decimal
 
@@ -5,6 +6,8 @@ from django_pg_bulk_update import BulkUpdateManager
 from encrypted_model_fields.fields import EncryptedTextField
 
 from .fields import JSONField
+from .markups import HOME_MARKUP_RU, HOME_MARKUP_ENG
+from .misc import truncate
 from django.db import models
 
 
@@ -123,6 +126,16 @@ class User(models.Model):
     def profile_markdown(self):
         return f'[{self.username or self.first_name}]({self.profile_url})'
 
+    def choice_localized(self, pk_text=None, ru_obj='', en_obj=''):
+        if not pk_text:
+            return {1: ru_obj, 2: en_obj}[self.language.pk]
+        attrnames = {1: 'text_ru', 2: 'text_eng'}
+        return getattr(Text.objects.get(pk=pk_text), attrnames[self.language.pk])
+
+    @property
+    def home_markup(self):
+        return self.choice_localized(ru_obj=HOME_MARKUP_RU, en_obj=HOME_MARKUP_ENG)
+
 
 class ChatWallet(models.Model):
     objects = BulkUpdateManager()
@@ -137,11 +150,8 @@ class ChatWallet(models.Model):
         null=True, default=None)
     mnemonic = EncryptedTextField(
         verbose_name='Сид фраза', default='')
-    balance = models.DecimalField(
-        verbose_name='Баланс',
-        decimal_places=6, max_digits=24,
-        default=Decimal(0)
-    )
+
+    balances = JSONField(verbose_name='Баланс', default=dict)
     balance_updated_at = models.DateTimeField(
         verbose_name='Последнее обновление баланса',
         auto_now=True)
@@ -152,6 +162,24 @@ class ChatWallet(models.Model):
     class Meta:
         verbose_name = 'Кошелек чата'
         verbose_name_plural = 'Кошельки чатов'
+
+    @property
+    def balance(self):
+        balance = defaultdict(Decimal)
+        for coin, value in self.balances.items():
+            dvalue = Decimal(value)
+            if truncate(dvalue, 4) > 0:
+                balance[coin] = dvalue
+        if not balance:
+            balance[self.chat.coin] = Decimal(0)
+        return balance
+
+    def setbalance(self, coin, value):
+        self.balances[coin] = str(value)
+
+    @property
+    def balance_formatted(self):
+        return '\n'.join(f'{truncate(balance, 4)} {coin}' for coin, balance in self.balance.items())
 
 
 class MinterWallets(models.Model):
@@ -166,11 +194,8 @@ class MinterWallets(models.Model):
         verbose_name='Адрес (Mx...)')
     mnemonic = EncryptedTextField(
         verbose_name='Сид фраза')
-    balance = models.DecimalField(
-        verbose_name='Баланс',
-        decimal_places=6, max_digits=24,
-        default=Decimal(0)
-    )
+
+    balances = JSONField(verbose_name='Баланс', default=dict)
     balance_updated_at = models.DateTimeField(
         verbose_name='Последнее обновление баланса',
         auto_now=True)
@@ -181,6 +206,24 @@ class MinterWallets(models.Model):
     class Meta:
         verbose_name = 'Minter-Кошелек'
         verbose_name_plural = 'Minter-Кошельки'
+
+    @property
+    def balance(self):
+        balance = defaultdict(Decimal)
+        for coin, value in self.balances.items():
+            dvalue = Decimal(value)
+            if truncate(dvalue, 4) > 0:
+                balance[coin] = dvalue
+        if not balance:
+            balance['TIME'] = Decimal(0)
+        return balance
+
+    def setbalance(self, coin, value):
+        self.balances[coin] = str(value)
+
+    @property
+    def balance_formatted(self):
+        return '\n'.join(f'{truncate(balance, 4)} {coin}' for coin, balance in self.balance.items() if balance > 0)
 
 
 class Tools(models.Model):

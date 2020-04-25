@@ -1,7 +1,5 @@
 import logging
-from datetime import datetime, date, timedelta
-from decimal import getcontext, ROUND_DOWN
-from functools import partial
+from datetime import datetime, date
 from random import randint
 from pprint import pformat
 
@@ -18,19 +16,16 @@ from telebot.types import CallbackQuery
 
 from celery_app import app
 from .dice import DiceBot, get_chat_creation_date
-from .minter import send, API, wallet_balance, coin_convert
+from .minter import send, API, coin_convert
 from .models import *
-from dice_time.settings import API_TOKEN, LOCAL, RELEASE_UTC_DATETIME, ORIGIN
-
-import time
+from dice_time.settings import API_TOKEN, RELEASE_UTC_DATETIME, DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 
 from .markups import *
 
 from django.conf import settings
 
-from .utils import get_localized_choice, get_language
-
 logger = logging.getLogger('Dice')
+logger_dice_event = logging.getLogger('DiceEvent')
 
 bot = DiceBot(API_TOKEN, skip_pending=True, threaded=False)
 
@@ -41,7 +36,9 @@ def get_user_timeloop_address(user_id):
         return None
     return r.json().get('address')
 
+
 # ---
+
 
 def is_group_text(msg):
     return msg.chat.type != 'private' \
@@ -61,6 +58,17 @@ def is_group_text_reply(msg):
 
 def is_chat_admin_button(msg):
     return msg.chat.type == 'private' and msg.text in [CHAT_ADMIN_RU, CHAT_ADMIN_EN]
+
+
+def is_bot_creator_in_group(m):
+    return m.chat.type in ('group', 'supergroup') \
+           and m.from_user.id in settings.ADMIN_TG_IDS
+
+
+def is_private(m):
+    return m.chat.type == 'private'
+
+
 # ----
 
 
@@ -103,10 +111,10 @@ def get_chat_model(tg_chat):
 
 
 def get_user_model(tg_user):
-    ru_lang = Language.objects.get(pk=1)
-    en_lang = Language.objects.get(pk=2)
-    user_lang = get_language(tg_user.language_code)
-    user_lang_model = ru_lang if user_lang == 'ru' else en_lang
+    lang_pk = {'ru': 1, 'en': 2}
+    user_lang = (tg_user.language_code or DEFAULT_LANGUAGE).split("-")[0]
+    user_lang = DEFAULT_LANGUAGE if user_lang not in SUPPORTED_LANGUAGES else user_lang
+    user_lang_model = Language.objects.get(pk=lang_pk[user_lang])
 
     user, is_created = User.objects.get_or_create(
         id=tg_user.id, defaults={
@@ -190,14 +198,12 @@ def send_coins(message, sender, receiver):
 
 def notify_win(user, event, event_local=None):
     chat_id = user.id
-    reward = Decimal(event.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)
     local_text = ''
     if event_local:
-        reward_local = Decimal(event_local.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)
-        local_text = f' + {reward_local} {event_local.coin}'
+        local_text = f' + {event_local.summa} {event_local.coin}'
     send_message(
         chat_id,
-        f'Вы выиграли {reward} {event.coin}' + local_text, None)
+        f'Вы выиграли {event.summa} {event.coin}' + local_text, None)
     event.is_notified = True
     event.save()
 
@@ -205,18 +211,15 @@ def notify_win(user, event, event_local=None):
 def button_win(user, dice_msg, event, event_local=None):
     url = f'https://telegram.me/{bot.user.username}'
     take_money_markup = types.InlineKeyboardMarkup(row_width=1)
-    take_money_btn_text = get_localized_choice(user, pk=5)
+    take_money_btn_text = user.choice_localized(pk_text=5)
     take_money_markup.add(types.InlineKeyboardButton(take_money_btn_text, url=url))
 
-    reward = Decimal(event.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)
-    take_money_text = get_localized_choice(user, pk=7)
+    take_money_text = user.choice_localized(pk_text=7).format(
+        X=event.summa, coin_ticker=event.coin)
     if event_local:
-        reward_local = Decimal(event_local.summa).quantize(Decimal("0.1234"), rounding=ROUND_DOWN)
-        take_money_text += f' + {reward_local} {event_local.coin}'
+        take_money_text += f' + {event_local.summa} {event_local.coin}'
 
-    reply_to(dice_msg, take_money_text.format(
-        X=Decimal(reward).quantize(Decimal('0.1234'), rounding=ROUND_DOWN),
-        coin_ticker=event.coin), take_money_markup)
+    reply_to(dice_msg, take_money_text, take_money_markup)
 
 
 def check_pending_notification(user, message):
@@ -224,7 +227,7 @@ def check_pending_notification(user, message):
     count = len(missed_notifies)
     if not count:
         return
-    markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
+    markup = user.home_markup
     missed_notifies.update(is_notified=True)
     send_message(message, 'Вы не заходили в бота, разблокировали его или мы забыли прислать вам уведомление.\n'
                           f'За это время вы выиграли {count} раз', markup)
@@ -300,10 +303,9 @@ def calc_dice_reward_local(user, chat_local, details):
     if 0 < reward_bip < 0.05:
         reward_bip = 0.05
         reward = coin_convert('BIP', reward_bip, chat_local.coin)
-    return max(0, reward)
+    return truncate(max(0, reward), 4)
 
 
-# проверка на blacklist или выигрыш в данном чате сегодня + расчет формулы
 def calc_dice_reward(user, dice, chat_id):
     details = {}
     is_blacklisted = Exceptions.objects.filter(user=user).exists()
@@ -380,15 +382,13 @@ def calc_dice_reward(user, dice, chat_id):
     if 0 < reward_bip < 0.05:
         reward_bip = 0.05
         reward = coin_convert('BIP', reward_bip, user_settings.coin)
-    return max(0, reward), details
+    return truncate(max(0, reward), 4), details
 
 
 def on_dice_event(message):
     user, _ = get_user_model(message.from_user)
     chat_local = AllowedChat.objects.filter(chat_id=message.chat.id, status='activated').first()
     wallet_local = ChatWallet.objects.filter(chat=chat_local).first()
-
-    logger.info(f'Dice event start. {user} in chat#{message.chat.id} "{message.chat.title}"')
 
     dice_msg = bot.send_dice(
         message.chat.id,
@@ -412,7 +412,7 @@ def on_dice_event(message):
         return
 
     event_local = None
-    if chat_local and wallet_local and wallet_local.balance > 0:
+    if chat_local and wallet_local and wallet_local.balance[chat_local.coin] > 0:
         reward_local = calc_dice_reward_local(user, chat_local, details)
         event_local = DiceEvent.objects.create(
             user=user,
@@ -434,30 +434,26 @@ def on_dice_event(message):
     notify_win(user, event, event_local=event_local)
     button_win(user, dice_msg, event, event_local=event_local)
 
-    logger.info('Dice event ok.')
-
 
 # -----------
 
 
 @bot.message_handler(commands=['start'], func=is_private_text)
 def command_start(message):
+    coin = Tools.objects.get(pk=1).coin
     user, is_created = get_user_model(message.from_user)
     check_pending_notification(user, message)
     if is_created:
-        markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
-        text = get_localized_choice(user, 1)
-        document = Text.objects.get(pk=1).attachment
-        bot.send_document(message.chat.id, document, caption=text, reply_markup=markup)
+        text = user.choice_localized(pk_text=1)
+        document = text.attachment
+        bot.send_document(
+            message.chat.id, document,
+            caption=text, reply_markup=user.home_markup)
     else:
-        text = get_localized_choice(user, pk=4)
-        markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
-        send_message(
-            message,
-            text.format(
-                user_name=user.first_name,
-                coin_ticker=Tools.objects.get(pk=1).coin),
-            markup)
+        text = user.choice_localized(pk_text=4).format(
+            user_name=user.first_name,
+            coin_ticker=coin)
+        send_message(message, text, user.home_markup)
 
 
 @bot.message_handler(func=is_chat_admin_button)
@@ -506,7 +502,9 @@ def send_chat_detail(root_message, chat):
     text = f'''
 Адрес кошелька чата: `{chat_wallet.address}`
 Seed: `{chat_wallet.mnemonic}`
-Баланс: {chat_wallet.balance} {chat.coin}'''
+Монета чата: {chat.coin}
+Баланс: 
+{chat_wallet.balance_formatted}'''
     markup = chat_actions_markup(chat)
     bot.edit_message_text(
         text, root_message.chat.id, root_message.message_id,
@@ -578,15 +576,12 @@ def chat_setting(call):
 
 @bot.message_handler(func=lambda message: message.text == RULES_BTN_RU or message.text == RULES_BTN_EN)
 def rules(message):
-    user = User.objects.get(pk=message.chat.id)
-    text = get_localized_choice(user, pk=4)
-    markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
-    send_message(
-        message,
-        text.format(
-            user_name=user.first_name,
-            coin_ticker=Tools.objects.get(pk=1).coin),
-        markup)
+    coin = Tools.objects.get(pk=1).coin
+    user, _ = get_user_model(message.from_user)
+    text = user.choice_localized(pk_text=4).format(
+        user_name=user.first_name,
+        coin_ticker=coin)
+    send_message(message, text, user.home_markup)
 
 
 @bot.message_handler(func=lambda message: message.text == WALLET_BTN_RU or message.text == WALLET_BTN_EN)
@@ -597,10 +592,7 @@ def my_wallet(message):
     private_key = wallet_obj['private_key']
 
     coin = Tools.objects.get(pk=1).coin
-    # balances, nonce = wallet_balance(wallet_obj['address'], with_nonce=True)
-    # logger.info(balances)
-    # amount = balances.get(coin, Decimal(0)).quantize(Decimal('0.000001'), rounding=ROUND_DOWN)
-    amount = wallet.balance
+    amount = wallet.balance[coin]
     nonce = API.get_nonce(wallet.address)
 
     check_obj = MinterCheck(
@@ -609,7 +601,7 @@ def my_wallet(message):
     redeem_tx = MinterRedeemCheckTx(check_str, check_obj.proof(wallet.address, ''), nonce=1, gas_coin=coin)
     redeem_tx.sign(private_key)
     redeem_tx_fee = API.estimate_tx_commission(redeem_tx.signed_tx, pip2bip=True)['result']['commission']
-    logger.debug(f'Wallet {wallet.address} balance: {amount}')
+    logger.debug(f'Wallet {wallet.address} balance: {wallet.balance}')
     logger.info(f'Redeem check tx fee: {redeem_tx_fee}')
     available_withdraw = amount - redeem_tx_fee
 
@@ -624,8 +616,9 @@ def my_wallet(message):
     redeem_url = None
     user_address = None
     if available_withdraw > 0:
-        to_wallet_text = get_localized_choice(
-            user, ru_text=f'На кошелек', en_text=f'To Wallet')
+        to_wallet_text = user.choice_localized(
+            ru_obj='Вывести на кошелек Minter',
+            en_obj='Withdraw to Minter Wallet')
         passphrase = uuid()
         check_obj = MinterCheck(
             nonce=1, due_block=999999999, coin=coin, value=available_withdraw, gas_coin=coin,
@@ -639,30 +632,29 @@ def my_wallet(message):
 
     if available_send > 0:
         user_address = get_user_timeloop_address(message.chat.id)
-        timeloop_text = 'Time Loop'
+        timeloop_text = user.choice_localized(
+            ru_obj='Пополнить счет в игре Time Loop',
+            en_obj='Replenish Time Loop game balance')
 
     markup = wallet_markup(
         to_wallet_text=to_wallet_text,
         redeem_deeplink=redeem_url,
         timeloop_text=timeloop_text,
         user_address=user_address)
-    text = get_localized_choice(user, pk=16)
-    text = text.format(
+    text = user.choice_localized(pk_text=16).format(
         user_wallet_address=wallet.address,
         user_seed_phrase=wallet.mnemonic,
-        amount=amount)
+        amount=wallet.balance_formatted)
     send_message(message, text, markup)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('timeloop_'))
 def timeloop(call):
-    user = User.objects.get(pk=call.from_user.id)
-    coin = Tools.objects.get(pk=1).coin
+    user = get_user_model(call.from_user)
+    coin = 'TIME'
     wallet = MinterWallets.objects.get(user=user)
     wallet_obj = MinterWallet.create(mnemonic=wallet.mnemonic)
-    # balances, nonce = wallet_balance(wallet_obj['address'], with_nonce=True)
-    # amount = balances.get(coin, Decimal(0))
-    amount = wallet.balance
+    amount = wallet.balance[coin]
     nonce = API.get_nonce(wallet.address)
 
     send_tx = MinterSendCoinTx(coin, wallet.address, amount, nonce=nonce, gas_coin=coin)
@@ -670,13 +662,14 @@ def timeloop(call):
     tx_fee = API.estimate_tx_commission(send_tx.signed_tx, pip2bip=True)['result']['commission']
     available_send = amount - tx_fee
 
-    if available_send <= 0:
-        bot.answer_callback_query(call.id, text='Недостаточно средств')
-        return
-
     user_timeloop_address = call.data.split('_')[-1]
     if not user_timeloop_address:
         bot.answer_callback_query(call.id, text='У вас нет аккаунта в игре.')
+
+        return
+
+    if available_send <= 0:
+        bot.answer_callback_query(call.id, text='Недостаточно средств')
         return
 
     send(wallet_obj, user_timeloop_address, coin, available_send, gas_coin=coin)
@@ -835,19 +828,12 @@ def handle_messages(message):
             user.save()
             return
         user.save()
+
+        logger.info('######## Dice Event')
+        logger_dice_event.info(f'\nDice event: {user} in chat#{message.chat.id} "{message.chat.title}"')
         on_dice_event(message)
+        logger_dice_event.info(f'\n')
         return
-
-
-# -----
-def is_bot_creator_in_group(m):
-    return \
-        m.chat.type in ('group', 'supergroup') and \
-        m.from_user.id in settings.ADMIN_TG_IDS
-
-
-def is_private(m):
-    return m.chat.type == 'private'
 
 
 def _dice_test(user, message):
@@ -868,11 +854,10 @@ def _dice_test(user, message):
     {pformat(details, indent=2)}
     ```
     """
-    markup = get_localized_choice(user, ru_text=HOME_MARKUP_RU, en_text=HOME_MARKUP_ENG)
-    send_message(message, response, markup if message.chat.type == 'private' else KB_REMOVE)
+    send_message(message, response, KB_REMOVE if message.chat.type != 'private' else user.home_markup)
 
 
-@bot.message_handler(func=lambda m: is_bot_creator_in_group(m) or is_private(m))
+@bot.message_handler(commands=['dice'], func=lambda m: is_bot_creator_in_group(m) or is_private(m))
 def dice_test(message):
     from_ = message.from_user
     user, _ = get_user_model(from_)

@@ -2,10 +2,8 @@ import logging
 
 from django.core.management.base import BaseCommand
 
-from users.tools import log_setup
 
 logger = logging.getLogger('Dice')
-# log_setup(logging.DEBUG)
 
 
 class Command(BaseCommand):

@@ -7,7 +7,7 @@ from mintersdk.sdk.transactions import MinterSendCoinTx, MinterMultiSendCoinTx
 from requests import ReadTimeout, ConnectTimeout, HTTPError
 
 from dice_time.settings import LOCAL, LOCAL_REAL_TXS
-from users.tools import retry
+from users.misc import retry
 
 logger = logging.getLogger('DiceMinter')
 
@@ -53,14 +53,6 @@ def multisend(wallet_from, w_dict, gas_coin='BIP', payload=''):
     r = API.send_transaction(tx.signed_tx)
     logger.info(f'Send TX response:\n{r}')
     return r
-
-
-def wallet_balance(address, with_nonce=False):
-    response = API.get_balance(address, pip2bip=True)
-    logging.debug(f'{address} balance response: {response}')
-    balance = response['result']['balance']
-    nonce = response['result']['transaction_count'] + 1
-    return (balance, nonce) if with_nonce else balance
 
 
 def coin_convert(coin, amount, to):

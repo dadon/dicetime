@@ -35,8 +35,8 @@ class UserAdmin(admin.ModelAdmin):
 @admin.register(MinterWallets)
 class WalletAdmin(admin.ModelAdmin):
 
-    list_display = ('user', 'address', 'balance', 'balance_updated_at')
-    search_fields = ['user', 'address', 'balance', 'balance_updated_at']
+    list_display = ('user', 'address', 'balances', 'balance_updated_at')
+    search_fields = ['user', 'address', 'balances', 'balance_updated_at']
 
 
 @admin.register(Tools)

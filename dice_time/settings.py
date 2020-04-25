@@ -212,29 +212,21 @@ LOGGING = {
             'utc': 'True',
             'backupCount': 7
         },
-        'minter': {
+        'dice_event': {
             'formatter': 'verbose',
             'filters': ['require_debug_false'],
             'level': 'DEBUG',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': 'jobs.log',
+            'filename': 'dice_event.log',
             'when': 'midnight',
             'utc': 'True',
             'backupCount': 7
         },
     },
-    # 'root': {
-    #     'handlers': ['console'],
-    # },
     'loggers': {
-        # 'django': {
-        #     'handlers': ['console'],
-        #     # 'level': 'DEBUG',
-        # },
         'TeleBot': {
             'handlers': ['console', 'file'],
             'level': 'DEBUG',
-            # 'level': 'INFO',
         },
         'Dice': {
             'handlers': ['console', 'file'],
@@ -247,9 +239,14 @@ LOGGING = {
             'propagate': False
         },
         'DiceMinter': {
-            'handlers': ['console', 'minter'],
+            'handlers': ['console', 'jobs'],
             'level': 'DEBUG',
             'propagate': False
-        }
+        },
+        'DiceEvent': {
+            'handlers': ['console', 'dice_event'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
     },
 }

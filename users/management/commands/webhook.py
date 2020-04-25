@@ -8,10 +8,8 @@ from dice_time.settings import ORIGIN, API_TOKEN, LOCAL
 from users.bot import bot
 from users.models import Service
 
-from users.tools import log_setup
 
 logger = logging.getLogger('Dice')
-# log_setup(logging.DEBUG)
 
 
 class Command(BaseCommand):

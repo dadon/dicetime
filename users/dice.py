@@ -10,7 +10,7 @@ from telebot.types import Message
 from pyrogram import Client
 
 from dice_time.settings import API_TOKEN, TG_API_ID, TG_API_HASH
-from users.tools import retry
+from users.misc import retry
 
 logger = logging.getLogger('Dice')
 
@@ -83,13 +83,14 @@ class DiceBot(TeleBot):
                 result = api_exc.result
                 result = result.json()
                 logger.info(result)
-                if result['error_code'] == 403:
-                    logger.info(f'403: skipping')
-                    return 403
+                if result['error_code'] in [400, 403]:
+                    logger.info(f'{result["error_code"]}: skipping')
+                    return result['error_code']
                 if result['error_code'] == 429:
-                    logger.info('429 error. sleeping')
+                    logger.info(f'429 error. Sleeping {result["parameters"]["retry_after"]}')
                     sleep(result['parameters']['retry_after'])
                 else:
+                    logger.info('Other error. Sleeping 1 sec.')
                     sleep(1)
 
     def get_updates(self, *args, **kwargs):

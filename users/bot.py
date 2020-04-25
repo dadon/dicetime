@@ -864,10 +864,17 @@ def dice_test(message):
     _dice_test(user, message)
 
 
-@bot.message_handler(commands=['disable'], func=lambda m: is_bot_creator_in_group(m))
+@bot.message_handler(commands=['restrict'], func=lambda m: is_bot_creator_in_group(m))
 def dice_restrict(message):
     chat, _ = get_chat_model(message.chat)
     chat.status = 'restricted'
+    chat.save()
+
+
+@bot.message_handler(commands=['allow'], func=lambda m: is_bot_creator_in_group(m))
+def dice_restrict(message):
+    chat, _ = get_chat_model(message.chat)
+    chat.status = 'allowed'
     chat.save()
 
 

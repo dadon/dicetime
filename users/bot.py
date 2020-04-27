@@ -15,7 +15,7 @@ from shortuuid import uuid
 from telebot.types import CallbackQuery
 
 from celery_app import app
-from .dice import DiceBot, get_chat_creation_date
+from .dice import DiceBot, get_chat_creation_date, get_chatmember_joined_date
 from .minter import send, API, coin_convert
 from .models import *
 from dice_time.settings import API_TOKEN, RELEASE_UTC_DATETIME, DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
@@ -98,6 +98,19 @@ def reply_to(message, text, markup):
     return mes
 
 # ----
+
+
+def get_chatmember_model(user, chat):
+    chatmember, is_created = ChatMember.objects.get_or_create(
+        chat=chat,
+        user=user
+    )
+    chatmember.joined_date = get_chatmember_joined_date(user, chat)
+    if chatmember.joined_date is None:
+        logger.warning('### Cant get user joined date. Setting "now"')
+        chatmember.joined_date = datetime.utcnow()
+
+    chatmember.save()
 
 
 def get_chat_model(tg_chat):
@@ -734,12 +747,7 @@ def handle_messages(message):
     for trigger in Triggers.objects.filter(action='dice'):
         if trigger.phrase.lower() not in msg_normalized:
             continue
-        chat_obj, is_created = AllowedChat.objects.get_or_create(
-            chat_id=message.chat.id,
-            defaults={
-                'link_chat': message.chat.username,
-                'title_chat': message.chat.title
-            })
+        chat_obj, is_created = get_chat_model(message.chat)
 
         if not chat_obj.creator:
             creator = get_chat_creator(message.chat.id)
@@ -750,22 +758,22 @@ def handle_messages(message):
             return
 
         if chat_obj.status in [None, 'errored']:
-            first_msg_ts = None
+            chat_date = None
             try:
-                first_msg_ts = get_chat_creation_date(message.chat.id)
+                chat_date = get_chat_creation_date(message.chat.id)
                 chat_obj.created_at = datetime.utcfromtimestamp(first_msg_ts)
             except Exception as exc:
                 logger.error(
                     f'\nGet chat creation date error.\n'
                     f'id={message.chat.id} type={message.chat.type} title={message.chat.title}\n'
                     f'{type(exc)}: {exc}')
-            if not first_msg_ts:
+            if not chat_date:
                 chat_obj.status_updated_at = datetime.utcnow()
                 chat_obj.status = 'errored'
                 chat_obj.save()
                 return
             release_datetime = datetime.strptime(RELEASE_UTC_DATETIME, '%Y-%m-%d %H:%M')
-            if first_msg_ts > release_datetime.timestamp():
+            if chat_date > release_datetime.timestamp():
                 chat_obj.status_updated_at = datetime.utcnow()
                 chat_obj.status = 'restricted'
                 chat_obj.save()
@@ -781,7 +789,13 @@ def handle_messages(message):
 
         # проверяем  положен ли выигрыш
         today = now.date()
+
         user, is_created = get_user_model(message.from_user)
+        chatmember, _ = get_chatmember_model(user, chat_obj)
+        release_datetime = datetime.strptime(RELEASE_UTC_DATETIME, '%Y-%m-%d %H:%M')
+        if chatmember.joined_date > release_datetime:
+            logger.info(f'### Restrict chat member {chatmember} by joined_date')
+            return
 
         user_won_this_chat_today = False if is_created else \
             DiceEvent.objects.filter(

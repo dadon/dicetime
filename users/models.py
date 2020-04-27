@@ -137,6 +137,26 @@ class User(models.Model):
         return self.choice_localized(ru_obj=HOME_MARKUP_RU, en_obj=HOME_MARKUP_ENG)
 
 
+class ChatMember(models.Model):
+    objects = BulkUpdateManager()
+
+    chat = models.ForeignKey(
+        AllowedChat,
+        verbose_name='Чат',
+        on_delete=models.CASCADE, unique=False)
+
+    user = models.ForeignKey(
+        User,
+        verbose_name='Чатланин',
+        on_delete=models.CASCADE, unique=False)
+
+    joined_date = models.DateTimeField(verbose_name='Дата добавления в чат', default=None, null=True)
+
+    class Meta:
+        unique_together = (
+            ('chat', 'user')
+        )
+
 class ChatWallet(models.Model):
     objects = BulkUpdateManager()
 

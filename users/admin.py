@@ -92,3 +92,8 @@ class ChatAdmin(admin.ModelAdmin):
         return response
 
     export_as_csv.short_description = "Export Selected"
+
+
+@admin.register(ChatMember)
+class ChatMemberAdmin(admin.ModelAdmin):
+    list_display = 'user', 'chat', 'joined_date'

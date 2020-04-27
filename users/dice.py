@@ -1,8 +1,10 @@
 import logging
 from datetime import datetime
-from time import time, sleep
+from time import sleep
 
-from pyrogram.api.functions.messages import GetChats
+from pyrogram.api.functions.channels import GetFullChannel
+from pyrogram.api.functions.messages import GetFullChat
+from pyrogram.api.types import InputPeerChannel, InputPeerChat
 from telebot import apihelper, TeleBot
 from telebot.apihelper import _convert_markup, ApiException
 from telebot.types import Message
@@ -15,22 +17,59 @@ from users.misc import retry
 logger = logging.getLogger('Dice')
 
 
+def get_fullchat(app, chat_id):
+    peer = app.resolve_peer(chat_id)
+    if isinstance(peer, InputPeerChannel):
+        return app.send(GetFullChannel(channel=peer))
+    if isinstance(peer, InputPeerChat):
+        return app.send(GetFullChat(chat_id=peer.chat_id))
+
+
+def _chat_date(app, chat, chat_id):
+    chat_date = None
+    if not chat.megagroup:
+        chat_date = chat.date
+        logger.info(f'####### Got chat date (GetFullChat) {chat_date}')
+    else:
+
+        messages = filter(
+            lambda m: not m.empty,
+            app.get_messages(chat_id, range(1, 201), replies=0))
+        for msg in messages:
+            chat_date = msg.date
+            logger.info(f'####### Got chat date (fullchat + get_messages) {chat_date}')
+            break
+    return chat_date
+
+
 @retry(Exception, tries=5, delay=0.5, backoff=1)
 def get_chat_creation_date(chat_id):
     with Client('pyrosession', api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN) as app:
-        try:
-            response = app.send(GetChats(id=[abs(chat_id)]))
-            chat_date = response.chats[0].date
-            logger.info(f'####### Got chat date (GetChats) {chat_date}')
-            return chat_date
-        except Exception as exc:
-            logger.debug(exc)
-            message = app.get_messages(chat_id, 1)
-            if message.empty:
-                raise Exception('History invisible')
-            chat_date = message.date
-            logger.info(f'####### Got chat date (get_messages) {chat_date}')
-            return chat_date
+        chat_date = None
+        full = get_fullchat(app, chat_id)
+        if len(full.chats) == 1:
+            chat = full.chats[0]
+            chat_date = _chat_date(app, chat, chat_id)
+        else:
+            for chat in full.chats:
+                if chat.broadcast:
+                    continue
+                chat_date = _chat_date(app, chat, chat_id)
+                break
+
+        if chat_date is None:
+            raise Exception(f"Can't get chat date\n{str(full)}")
+
+        return chat_date
+
+
+def get_chatmember_joined_date(user, chat):
+    if user.id == chat.creator.id:
+        return chat.created_at
+
+    with Client('pyrosession', api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN) as app:
+        chatmember = app.get_chat_member(chat.chat_id, user.id)
+        return datetime.utcfromtimestamp(chatmember.joined_date) if chatmember.joined_date else None
 
 
 class DiceMessage(Message):

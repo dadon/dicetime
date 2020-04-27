@@ -111,6 +111,7 @@ def get_chatmember_model(user, chat):
         chatmember.joined_date = datetime.utcnow()
 
     chatmember.save()
+    return chatmember, is_created
 
 
 def get_chat_model(tg_chat):

@@ -4,20 +4,12 @@ from time import sleep
 
 from django.core.management.base import BaseCommand
 from pyrogram import Client
-from pyrogram.errors import ChannelInvalid, ChannelPrivate
 
 from dice_time.settings import TG_API_HASH, API_TOKEN, TG_API_ID
+from users.dice import collect_chat_members
 from users.models import AllowedChat, ChatMember, User
 
 logger = logging.getLogger('Dice')
-
-
-def collect_chat_members(app, chat):
-    try:
-        return [m for m in app.iter_chat_members(chat.chat_id)]
-    except (AttributeError, ChannelInvalid, ChannelPrivate) as exc:
-        logger.info(f'Error for {chat.title_chat} ({chat.chat_id})')
-        logger.info(exc)
 
 
 def save_chat_members(members):

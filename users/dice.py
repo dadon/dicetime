@@ -5,6 +5,7 @@ from time import sleep
 from pyrogram.api.functions.channels import GetFullChannel
 from pyrogram.api.functions.messages import GetFullChat
 from pyrogram.api.types import InputPeerChannel, InputPeerChat
+from pyrogram.errors import ChannelInvalid, ChannelPrivate
 from telebot import apihelper, TeleBot
 from telebot.apihelper import _convert_markup, ApiException
 from telebot.types import Message
@@ -63,13 +64,23 @@ def get_chat_creation_date(chat_id):
         return chat_date
 
 
+def collect_chat_members(app, chat):
+    try:
+        return [m for m in app.iter_chat_members(chat.chat_id)]
+    except (AttributeError, ChannelInvalid, ChannelPrivate) as exc:
+        logger.info(f'Error for {chat.title_chat} ({chat.chat_id})')
+        logger.info(exc)
+
+
 def get_chatmember_joined_date(user, chat):
     if user.id == chat.creator.id:
         return chat.created_at
 
     with Client('pyrosession', api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN) as app:
-        chatmember = app.get_chat_member(chat.chat_id, user.id)
-        return datetime.utcfromtimestamp(chatmember.joined_date) if chatmember.joined_date else None
+        members = collect_chat_members(app, chat)
+        for m in members:
+            if m.user.id == user.id:
+                return datetime.utcfromtimestamp(m.joined_date) if m.joined_date else None
 
 
 class DiceMessage(Message):

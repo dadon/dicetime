@@ -113,8 +113,11 @@ def get_chatmember_model(user, chat):
     )
     chatmember.joined_date = get_chatmember_joined_date(user, chat)
     if chatmember.joined_date is None:
-        logger.warning('### Cant get user joined date. Setting "now"')
-        chatmember.joined_date = datetime.utcnow()
+        if user == chat.creator:
+            chatmember.joined_date = chat.created_at
+        else:
+            logger.warning('### Cant get user joined date. Setting "now"')
+            chatmember.joined_date = datetime.utcnow()
 
     chatmember.save()
     return chatmember, is_created

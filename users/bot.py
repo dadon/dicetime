@@ -65,6 +65,12 @@ def is_bot_creator_in_group(m):
            and m.from_user.id in settings.ADMIN_TG_IDS
 
 
+def is_chat_admin_or_bot_creator(m):
+    admins = [member.user.id for member in bot.get_chat_administrators(m.chat.id)]
+    return m.from_user.id in settings.ADMIN_TG_IDS \
+        or m.from_user.id in admins
+
+
 def is_private(m):
     return m.chat.type == 'private'
 
@@ -879,18 +885,20 @@ def dice_test(message):
     _dice_test(user, message)
 
 
-@bot.message_handler(commands=['restrict'], func=lambda m: is_bot_creator_in_group(m))
+@bot.message_handler(commands=['restrict'], func=lambda m: is_chat_admin_or_bot_creator(m))
 def dice_restrict(message):
     chat, _ = get_chat_model(message.chat)
     chat.status = 'restricted'
     chat.save()
+    send_message(message.from_user.id, f'Dice time для чата {message.chat.title} **отключен**', None)
 
 
-@bot.message_handler(commands=['allow'], func=lambda m: is_bot_creator_in_group(m))
-def dice_restrict(message):
+@bot.message_handler(commands=['allow'], func=lambda m: is_chat_admin_or_bot_creator(m))
+def dice_allow(message):
     chat, _ = get_chat_model(message.chat)
     chat.status = 'allowed'
     chat.save()
+    send_message(message.from_user.id, f'Dice time для чата {message.chat.title} **включен**', None)
 
 
 @bot.message_handler(commands=['del'], func=lambda m: is_bot_creator_in_group(m))

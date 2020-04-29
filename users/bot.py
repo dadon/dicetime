@@ -147,7 +147,7 @@ def get_user_model(tg_user):
             'language': user_lang_model
         })
 
-    if is_created:
+    if is_created or not MinterWallets.objects.filter(user=user).exists():
         wallet = MinterWallet.create()
         MinterWallets.objects.get_or_create(
             user=user, defaults={
@@ -899,7 +899,7 @@ def dice_restrict(message):
 @bot.message_handler(commands=['allow'], func=lambda m: is_chat_admin_or_bot_creator(m))
 def dice_allow(message):
     chat, _ = get_chat_model(message.chat)
-    chat.status = 'allowed'
+    chat.status = 'activated'
     chat.save()
     send_message(message.from_user.id, f'Dice time для чата {message.chat.title} **включен**', None)
 

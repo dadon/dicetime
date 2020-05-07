@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 from pyrogram import Client
 
 from dice_time.settings import TG_API_HASH, API_TOKEN, TG_API_ID
-from users.dice import collect_chat_members
+from dicebot.logic.telegram import collect_chat_members
 from users.models import AllowedChat, ChatMember, User
 
 logger = logging.getLogger('Dice')

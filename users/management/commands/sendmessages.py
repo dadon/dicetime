@@ -1,10 +1,10 @@
 import logging
-from time import sleep
 
 from django.core.management.base import BaseCommand
+from pyrogram import Client
 
-from dice_time.settings import ADMIN_TG_IDS
-from users.bot import bot
+from dice_time.settings import ADMIN_TG_IDS, TG_API_ID, TG_API_HASH, API_TOKEN
+
 from users.models import User
 
 logger = logging.getLogger('Dice')
@@ -27,26 +27,25 @@ class Command(BaseCommand):
         parser.add_argument('--test', action='store_true')
 
     def handle(self, **options):
+        with Client('pyrosession', api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN) as app:
+            logger.info('Start send messages')
 
-        logger.info('Start send messages')
+            if options['test']:
+                users = User.objects.filter(id__in=ADMIN_TG_IDS)
+            else:
+                users = User.objects.all()
 
-        if options['test']:
-            users = User.objects.filter(id__in=ADMIN_TG_IDS)
-        else:
-            users = User.objects.all()
-
-        uids = [u.id for u in users]
-        count403 = 0
-        count400 = 0
-        count_success = 0
-        for user_batch in [[uid for uid in uids[i: i + 30]] for i in range(0, len(uids), 30)]:
-            for uid in user_batch:
-                result = bot.send_message(uid, MESSAGE, disable_web_page_preview=True)
-                if result == 403:
-                    count403 += 1
-                elif result == 400:
-                    count400 += 1
-                elif result:
+            user_map = {u.id: u for u in users}
+            count_error = 0
+            count_success = 0
+            for uid, user in user_map.items():
+                try:
+                    app.send_message(
+                        uid, MESSAGE, disable_web_page_preview=True, reply_markup=user.home_markup)
                     count_success += 1
-            sleep(1)
-            logger.info(f'Sent batch. count403={count403} count_success={count_success}')
+                except Exception as exc:
+                    logger.info(user)
+                    logger.info('###############')
+                    logger.info(f'\n\n{type(exc)}: {exc}\n\n')
+                    count_error += 1
+            logger.info(f'Done. count_success={count_success} count_error={count_error}')

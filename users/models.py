@@ -1,14 +1,14 @@
 from collections import defaultdict
 from datetime import time
 from decimal import Decimal
+from django.db import models
 
 from django_pg_bulk_update import BulkUpdateManager
 from encrypted_model_fields.fields import EncryptedTextField
 
 from dicebot.bot.markup import kb_home, KB_HOME_RU, KB_HOME_EN
+from dicebot.logic.helpers import truncate
 from .fields import JSONField
-from .misc import truncate
-from django.db import models
 
 
 class Service(models.Model):

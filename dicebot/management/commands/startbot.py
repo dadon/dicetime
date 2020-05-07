@@ -5,6 +5,7 @@ from pyrogram import Client
 
 from dice_time.settings import TG_API_ID, TG_API_HASH, API_TOKEN
 
+logging.basicConfig(filename='test.log', level=logging.DEBUG)
 logger = logging.getLogger('Dice')
 
 

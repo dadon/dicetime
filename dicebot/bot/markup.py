@@ -1,4 +1,4 @@
-from pyrogram import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from pyrogram import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 RULES_BTN_RU = '❔ Правила'
 WALLET_BTN_RU = '💰 Мой Кошелёк'
@@ -11,6 +11,7 @@ CANCEL_INPUT_RU = 'Отмена'
 
 KB_HOME_RU = [[RULES_BTN_RU, WALLET_BTN_RU], [CHAT_ADMIN_RU]]
 KB_HOME_EN = [[RULES_BTN_EN, WALLET_BTN_EN], [CHAT_ADMIN_EN]]
+KB_REMOVE = ReplyKeyboardRemove()
 
 
 def kb_home(kb):

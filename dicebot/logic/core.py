@@ -133,19 +133,18 @@ def calc_dice_reward(app: Client, user, dice, chat_id):
     details['blacklisted'] = is_blacklisted
     if is_blacklisted:
         return 0, details
-
     details['today'] = today = date.today()
-    details['members'] = members = app.get_chat_members_count(chat_id)
-
+    try:
+        details['members'] = members = app.get_chat_members_count(chat_id)
+    except ValueError:
+        details['members'] = members = 2
     user_agg = get_user_won_by_chats(user, today, is_local=False)
     user_won_day = float(sum(row['chat_sum_user'] for row in user_agg)) if user_agg else 0
     is_chat_win = chat_id in [row['chat_id'] for row in user_agg]
-
     details['user_won_day'] = user_won_day
     details['is_chat_win'] = is_chat_win
 
     chat_stat = get_total_won_by_chats(today, is_local=False)
-
     details['chat_won_day'] = chat_won_day = float(chat_stat.get(chat_id, 0))
     details['total_won_day'] = total_won_day = float(sum(chat_stat.values()))
 

@@ -4,7 +4,7 @@ from pyrogram import Client
 
 from celery_app import app
 from dice_time.settings import API_TOKEN, TG_API_HASH, TG_API_ID
-from dicebot.logic.minter import coin_send, API, estimate_custom_send_fee
+from dicebot.logic.minter import coin_send, API, estimate_custom_send_fee, find_gas_coin
 
 logger = logging.getLogger('Dice')
 
@@ -14,20 +14,8 @@ def minter_send_coins(
         w_from, address_to, coin, amount,
         group_chat_id, tg_id_sender, tg_id_receiver, markdown_sender, markdown_receiver):
     logger.info('--- P2P Send Coin ---')
-    balances = API.get_balance(w_from['address'], pip2bip=True)['result']['balance']
-    gas_coin = 'BIP'
-    if balances['BIP'] < 0.01 and len(balances) > 1:
-        gas_coin_custom = None
-        for coin, balance in balances.items():
-            if coin == 'BIP':
-                continue
-            if (balance - estimate_custom_send_fee(coin)) < 0:
-                continue
-            gas_coin_custom = coin
-            break
-        if gas_coin_custom:
-            gas_coin = gas_coin_custom
 
+    gas_coin = find_gas_coin(w_from['address'])
     r = coin_send(w_from['private_key'], w_from['address'], address_to, coin, amount, gas_coin=gas_coin)
     client = Client('pyrosession', no_updates=True, api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN)
     client.start()

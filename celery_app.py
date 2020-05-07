@@ -8,4 +8,4 @@ django.setup()
 
 app = Celery('dicetime')
 app.config_from_object('django.conf:settings')
-app.autodiscover_tasks(['users'])
+app.autodiscover_tasks(['dicebot.logic'])

@@ -45,15 +45,19 @@ ALLOWED_HOSTS = [
     "localhost",
     "dicetime.club",
 ]
-if LOCAL:
-    ngrok_tunnels = 'http://localhost:4040/api/tunnels'
-    resp = requests.get(ngrok_tunnels)
-    for tun in resp.json()['tunnels']:
-        if tun['proto'] == 'https':
-            ngrok_url = tun['public_url']
-            ORIGIN = ngrok_url + '/'
-            ALLOWED_HOSTS.append(ORIGIN[7:-1])
-            break
+
+
+# for local webhook test
+#
+# if LOCAL:
+#     ngrok_tunnels = 'http://localhost:4040/api/tunnels'
+#     resp = requests.get(ngrok_tunnels)
+#     for tun in resp.json()['tunnels']:
+#         if tun['proto'] == 'https':
+#             ngrok_url = tun['public_url']
+#             ORIGIN = ngrok_url + '/'
+#             ALLOWED_HOSTS.append(ORIGIN[7:-1])
+#             break
 
 
 # Application definition
@@ -63,6 +67,7 @@ INSTALLED_APPS = [
     'dal_select2',
     'django_extensions',
     'encrypted_model_fields',
+    'dicebot.apps.DicebotConfig',
     'users.apps.UsersConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -163,7 +168,7 @@ USE_TZ = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = '/var/www/static'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'pictures')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'content')
 MEDIA_URL = '/pictures/'
 
 # Static files (CSS, JavaScript, Images)
@@ -222,6 +227,16 @@ LOGGING = {
             'utc': 'True',
             'backupCount': 7
         },
+        'dice_private': {
+            'formatter': 'verbose',
+            'filters': ['require_debug_false'],
+            'level': 'DEBUG',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': 'dice_private.log',
+            'when': 'midnight',
+            'utc': 'True',
+            'backupCount': 7
+        },
     },
     'loggers': {
         'TeleBot': {
@@ -248,5 +263,20 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': False
         },
+        'DicePrivate': {
+            'handlers': ['console', 'dice_private'],
+            'level': 'DEBUG',
+            'propagate': False
+        },
     },
 }
+
+
+
+
+
+#
+
+
+
+

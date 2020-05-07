@@ -5,8 +5,8 @@ from decimal import Decimal
 from django_pg_bulk_update import BulkUpdateManager
 from encrypted_model_fields.fields import EncryptedTextField
 
+from dicebot.bot.markup import kb_home, KB_HOME_RU, KB_HOME_EN
 from .fields import JSONField
-from .markups import HOME_MARKUP_RU, HOME_MARKUP_ENG
 from .misc import truncate
 from django.db import models
 
@@ -109,6 +109,9 @@ class User(models.Model):
     today_state = JSONField(
         verbose_name='Состояние юзера сегодня',
         default=dict)
+    conversation_flags = JSONField(
+        verbose_name='Флаги состояния переписки',
+        default=dict)
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -126,15 +129,25 @@ class User(models.Model):
     def profile_markdown(self):
         return f'[{self.username or self.first_name}]({self.profile_url})'
 
+    @property
+    def home_markup(self):
+        return self.choice_localized(ru_obj=kb_home(KB_HOME_RU), en_obj=kb_home(KB_HOME_EN))
+
     def choice_localized(self, pk_text=None, ru_obj='', en_obj=''):
         if not pk_text:
             return {1: ru_obj, 2: en_obj}[self.language.pk]
         attrnames = {1: 'text_ru', 2: 'text_eng'}
         return getattr(Text.objects.get(pk=pk_text), attrnames[self.language.pk])
 
-    @property
-    def home_markup(self):
-        return self.choice_localized(ru_obj=HOME_MARKUP_RU, en_obj=HOME_MARKUP_ENG)
+    def init_today_state(self, today):
+        today_str = str(today)
+        self.today_state.setdefault('date', today)
+        if self.today_state['date'] != today_str:
+            self.today_state['date'] = today_str
+            self.today_state.pop('warned_chats', None)
+            self.today_state.pop('warned_today', None)
+        self.today_state.setdefault('warned_chats', {})
+        self.today_state.setdefault('warned_today', 0)
 
 
 class ChatMember(models.Model):

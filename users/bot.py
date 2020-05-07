@@ -20,7 +20,7 @@ from .minter import send, API, coin_convert
 from .models import *
 from dice_time.settings import API_TOKEN, RELEASE_UTC_DATETIME, DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 
-from .markups import *
+from users.markups import *
 
 from django.conf import settings
 

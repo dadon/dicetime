@@ -107,8 +107,8 @@ def calc_dice_reward_local(user, chat_local, details):
     else:
         chat_limit_multiplier = 1
 
-    details['user_limit_multtiplier'] = user_limit_multiplier
-    details['chat_limit_multtiplier'] = chat_limit_multiplier
+    details['user_limit_multiplier'] = user_limit_multiplier
+    details['chat_limit_multiplier'] = chat_limit_multiplier
     details['dice_multiplier_local'] = dice_multiplier = details['dice_multiplier'] / 5
 
     if user_limit_multiplier < 0 or chat_limit_multiplier < 0:

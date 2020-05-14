@@ -54,9 +54,8 @@ def dice_time(client: Client, message: Message):
                 user.save()
                 return
 
-            button_text = 'Попробовать в другом чате'
-            reply_text = 'В этом чате вы уже не можете сегодня играть.' \
-                '\nНе нужно спамить чат, мой уважаемый друг'
+            button_text = user.choice_localized(text_name='btn-chat-try-another')
+            reply_text = user.choice_localized(text_name='msg-chat-warn')
             bot = client.get_me()
             message.reply(reply_text, reply_markup=markup_add_to_chat(bot.username, button_text))
             user.today_state['warned_chats'][str(message.chat.id)] += 1
@@ -71,8 +70,7 @@ def dice_time(client: Client, message: Message):
                 user.save()
                 return
 
-            reply_text = 'Сегодня вы не можете больше играть.' \
-                '\nНе нужно спамить чат, мой уважаемый друг'
+            reply_text = user.choice_localized(text_name='msg-chat-warn-today')
             message.reply(reply_text)
             user.today_state['warned_today'] += 1
             user.save()

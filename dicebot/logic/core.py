@@ -200,7 +200,8 @@ def _notify_win(app: Client, user: User, event, event_local=None):
     local_text = ''
     if event_local:
         local_text = f' + {event_local.summa} {event_local.coin}'
-    win_text = f'Вы выиграли {event.summa} {event.coin}' + local_text
+    win_text = user.choice_localized(text_name='msg-chat-win-notify')
+    win_text = win_text.format(X=event.summa, coin=event.coin) + local_text
     app.send_message(user.id, win_text)
 
     event.is_notified = True
@@ -208,8 +209,8 @@ def _notify_win(app: Client, user: User, event, event_local=None):
 
 
 def _button_win(app: Client, user: User, dice_msg: Message, event, event_local=None):
-    take_money_btn_text = user.choice_localized(pk_text=5)
-    take_money_msg_text = user.choice_localized(pk_text=7).format(X=event.summa, coin_ticker=event.coin)
+    take_money_btn_text = user.choice_localized(text_name='btn-chat-win')
+    take_money_msg_text = user.choice_localized(text_name='msg-chat-win').format(X=event.summa, coin_ticker=event.coin)
     if event_local:
         take_money_msg_text += f' + {event_local.summa} {event_local.coin}'
     bot = app.get_me()
@@ -247,9 +248,7 @@ def handle_missed_notifications(app: Client, user: User):
         return
     missed_notifies.update(is_notified=True)
 
-    notify_text = 'Вы не заходили в бота, разблокировали его ' \
-        'или мы забыли прислать вам уведомление.\n' \
-        f'За это время вы выиграли {count} раз'
+    notify_text = user.choice_localized(text_name='msg-notify-missed-rewards')
     app.send_message(user.id, notify_text, reply_markup=user.home_markup)
 
 
@@ -261,13 +260,16 @@ def send_chat_detail(client: Client, chat: AllowedChat, user, root_message_id):
             'address': w['address'],
             'mnemonic': w['mnemonic']
         })
-    text = f'''
-Адрес кошелька чата: `{chat_wallet.address}`
-Seed: `{chat_wallet.mnemonic}`
-Монета чата: {chat.coin}
-Баланс: 
-{chat_wallet.balance_formatted}'''
-    client.edit_message_text(user.id, root_message_id, text, reply_markup=markup_chat_actions(chat))
+    text = user.choice_localized(text_name='msg-owner-chat').format(
+        address=chat_wallet.address, mnemonic=chat_wallet.mnemonic,
+        coin=chat.coin, balances=chat_wallet.balance_formatted)
+    btn_texts = {
+        'ulimit': user.choice_localized(text_name='btn-chat-setting-ulimit'),
+        'climit': user.choice_localized(text_name='btn-chat-setting-climit'),
+        'dt': user.choice_localized(text_name='btn-chat-setting-dt'),
+        'back': user.choice_localized(text_name='btn-chat-setting-back')
+    }
+    client.edit_message_text(user.id, root_message_id, text, reply_markup=markup_chat_actions(chat, btn_texts))
 
 
 def send_chat_list(client: Client, user: User, update: Union[Message, CallbackQuery]):
@@ -281,13 +283,13 @@ def send_chat_list(client: Client, user: User, update: Union[Message, CallbackQu
             logger.info(f'### Error {chat}: {type(exc)}: {exc}')
 
     if not clean_chats:
-        text = 'Вы должны быть создателем одного из чатов, в котором работает этот бот'
-        button_text = 'Выберите чат'
+        text = user.choice_localized(text_name='msg-owner-empty')
+        button_text = user.choice_localized(text_name='btn-owner-add-bot')
         bot = client.get_me()
         client.send_message(user.id, text, reply_markup=markup_add_to_chat(bot.username, button_text))
         return
 
-    text = 'Чаты, в которых вы создатель'
+    text = user.choice_localized(text_name='msg-owner')
     if isinstance(update, Message):
         update.reply_text(text, reply_markup=markup_chat_list(clean_chats))
     if isinstance(update, CallbackQuery):

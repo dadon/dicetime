@@ -79,7 +79,8 @@ def update_balances(app: Client, model: Union[Type[ChatWallet], Type[MinterWalle
         for coin, coindiff in diff.items():
             if coindiff <= 0:
                 continue
-            txt = f'Баланс чата {chat_wallet.chat.title_chat} пополнен на {truncate(coindiff, 4)} {coin}'
+            txt = chat_wallet.chat.creator.choice_localized(text_name='msg-chat-wallet-balance-update').format(
+                title=chat_wallet.chat.title_chat, X=truncate(coindiff, 4), coin=coin)
             app.send_message(chat_wallet.chat.creator.id, txt)
             app.send_message(chat_wallet.chat.chat_id, txt)
 

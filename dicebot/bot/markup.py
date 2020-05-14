@@ -1,13 +1,13 @@
 from pyrogram import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 
-RULES_BTN_RU = '❔ Правила'
-WALLET_BTN_RU = '💰 Мой Кошелёк'
-RULES_BTN_EN = '❔ Rules'
-WALLET_BTN_EN = '💰 My Wallet'
-CHAT_ADMIN_RU = 'Управление чатами'
-CHAT_ADMIN_EN = 'Chat administration'
-CANCEL_INPUT_EN = 'Cancel'
-CANCEL_INPUT_RU = 'Отмена'
+from users.models import Text
+
+RULES_BTN_RU = Text.objects.get(name='kb-home-rules').text_ru
+WALLET_BTN_RU = Text.objects.get(name='kb-home-wallet').text_ru
+RULES_BTN_EN = Text.objects.get(name='kb-home-rules').text_eng
+WALLET_BTN_EN = Text.objects.get(name='kb-home-wallet').text_eng
+CHAT_ADMIN_RU = Text.objects.get(name='kb-home-admin').text_ru
+CHAT_ADMIN_EN = Text.objects.get(name='kb-home-admin').text_eng
 
 KB_HOME_RU = [[RULES_BTN_RU, WALLET_BTN_RU], [CHAT_ADMIN_RU]]
 KB_HOME_EN = [[RULES_BTN_EN, WALLET_BTN_EN], [CHAT_ADMIN_EN]]
@@ -34,15 +34,18 @@ def markup_chat_list(chats):
     ] for chat in chats])
 
 
-def markup_chat_actions(chat):
-    u_limit_text = f'Лимит на юзера в день ({chat.user_limit_day} {chat.coin})'
-    c_limit_text = f'Лимит на чат в день ({chat.chat_limit_day} {chat.coin})'
-    dice_time_text = f'Dice Time ({chat.dice_time_from.strftime("%H:%M")} - {chat.dice_time_to.strftime("%H:%M")})'
+def markup_chat_actions(chat, btn_texts):
+    u_limit_text = btn_texts['ulimit'].format(ulimit=chat.user_limit_day, coin=chat.coin)
+    c_limit_text = btn_texts['climit'].format(ulimit=chat.chat_limit_day, coin=chat.coin)
+    dice_time_text = btn_texts['dt'].format(
+        dt_from=chat.dice_time_from.strftime("%H:%M"),
+        dt_to=chat.dice_time_to.strftime("%H:%M"))
+    back_text = btn_texts['back']
     markup = InlineKeyboardMarkup([
         [InlineKeyboardButton(u_limit_text, callback_data=f'set.ulimit.{chat.chat_id}')],
         [InlineKeyboardButton(c_limit_text, callback_data=f'set.climit.{chat.chat_id}')],
         [InlineKeyboardButton(dice_time_text, callback_data=f'set.dt.{chat.chat_id}')],
-        [InlineKeyboardButton('Назад', callback_data='set.back')]
+        [InlineKeyboardButton(back_text, callback_data='set.back')]
     ])
     return markup
 

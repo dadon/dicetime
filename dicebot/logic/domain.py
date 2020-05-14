@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Union
 
 from pyrogram import Client, Chat, User as tgUser
 from mintersdk.sdk.wallet import MinterWallet
@@ -103,6 +104,7 @@ def schedule_payment(event, wallet_local=None):
         wallet_local=wallet_local)
 
 
-def is_user_input_expected(tg_user: tgUser):
-    user, _ = get_user_model(tg_user)
+def is_user_input_expected(user: Union[tgUser, User]):
+    if isinstance(user, tgUser):
+        user, _ = get_user_model(user)
     return 'await_input_type' in user.conversation_flags

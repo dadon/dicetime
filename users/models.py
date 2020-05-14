@@ -133,11 +133,11 @@ class User(models.Model):
     def home_markup(self):
         return self.choice_localized(ru_obj=kb_home(KB_HOME_RU), en_obj=kb_home(KB_HOME_EN))
 
-    def choice_localized(self, pk_text=None, ru_obj='', en_obj=''):
-        if not pk_text:
+    def choice_localized(self, text_name=None, ru_obj='', en_obj=''):
+        if not text_name:
             return {1: ru_obj, 2: en_obj}[self.language.pk]
         attrnames = {1: 'text_ru', 2: 'text_eng'}
-        return getattr(Text.objects.get(pk=pk_text), attrnames[self.language.pk])
+        return getattr(Text.objects.get(name=text_name), attrnames[self.language.pk])
 
     def init_today_state(self, today):
         today_str = str(today)
@@ -422,7 +422,7 @@ class Text(models.Model):
     name = models.CharField(max_length=30, verbose_name='Название сообщения')
     text_ru = models.TextField(verbose_name='Текст сообщения')
     text_eng = models.TextField(verbose_name='Текст сообщения eng')
-    attachment = models.FileField(verbose_name='Поле для видео',blank=True,null=True)
+    attachment = models.FileField(verbose_name='Поле для видео', blank=True, null=True)
 
     class Meta:
         verbose_name = 'Текст'

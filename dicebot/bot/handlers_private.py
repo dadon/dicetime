@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from decimal import Decimal
 
 from mintersdk.sdk.check import MinterCheck
@@ -26,11 +27,11 @@ def start(client: Client, message: Message):
     user, is_created = get_user_model(message.from_user)
     handle_missed_notifications(client, user)
     if is_created:
-        text = user.choice_localized(pk_text=1)
+        text = user.choice_localized(text_name='caption-tl-promo')
         document = 'content/ad1.mp4'
         client.send_document(user.id, document, caption=text, reply_markup=user.home_markup)
     else:
-        text = user.choice_localized(pk_text=4).format(
+        text = user.choice_localized(text_name='msg-rules').format(
             user_name=user.first_name,
             coin_ticker=coin)
         client.send_message(user.id, text, reply_markup=user.home_markup)
@@ -42,7 +43,7 @@ def start(client: Client, message: Message):
 def rules(client: Client, message: Message):
     coin = Tools.objects.get(pk=1).coin
     user, _ = get_user_model(message.from_user)
-    text = user.choice_localized(pk_text=4).format(
+    text = user.choice_localized(text_name='msg-rules').format(
         user_name=user.first_name,
         coin_ticker=coin)
     client.send_message(user.id, text, reply_markup=user.home_markup)
@@ -73,39 +74,26 @@ def chat_setting(client: Client, call: CallbackQuery):
         send_chat_list(client, user, call)
         return
 
+    if is_user_input_expected(user):
+        return
+
     setting, chat_id = call.data.split('.')[1:]
     try:
         chat = AllowedChat.objects.get(chat_id=chat_id, creator=user, status='activated')
     except AllowedChat.DoesNotExist:
         return
 
-    def __chat_setting_prompt():
-        headr = {
-            'ulimit': '*User Reward Limit*',
-            'climit': '*Chat Reward Limit*',
-            'dt': '*Dice Time*'
-        }
-        descr = {
-            'ulimit': 'Max. *single user* reward\n'
-                      'Example input: `77.01 DICE`',
-            'climit': 'Max. *chat total* reward 24h\n'
-                      'Example input: `148.8 TIME`',
-            'dt': 'Dice will be available in this time\n'
-                  'Example input: `17:00-18:00`'
-        }
-        return f'{headr[setting]}\n\n' \
-               f'{descr[setting]}\n\n' \
-               '__Send me the new value to update this setting__'
-
-    if not user.conversation_flags.get('await_input_type'):
-        prompt_txt = __chat_setting_prompt()
-        call.edit_message_text(prompt_txt)
-        user.conversation_flags['await_input_type'] = setting
-        user.conversation_flags['input_params'] = {
-            'chat_id': str(chat_id),
-            'root_message_id': str(call.message.message_id)
-        }
-        user.save()
+    prompt_txt = user.choice_localized(text_name=f'msg-chat-setting-{setting}')
+    if setting == 'dt':
+        now = datetime.utcnow()
+        prompt_txt = prompt_txt.format(now=now.strftime("%H:%M"))
+    call.edit_message_text(prompt_txt)
+    user.conversation_flags['await_input_type'] = setting
+    user.conversation_flags['input_params'] = {
+        'chat_id': str(chat_id),
+        'root_message_id': str(call.message.message_id)
+    }
+    user.save()
 
 
 @Client.on_message(Filters.private & Filters.create(lambda _, m: is_user_input_expected(m.from_user)))
@@ -178,9 +166,7 @@ def my_wallet(client: Client, message: Message):
     redeem_url = None
     user_address = None
     if available_withdraw > 0:
-        to_wallet_text = user.choice_localized(
-            ru_obj='Вывести на кошелек Minter',
-            en_obj='Withdraw to Minter Wallet')
+        to_wallet_text = user.choice_localized(text_name='btn-withdraw-minter')
         passphrase = uuid()
         check_obj = MinterCheck(
             nonce=1, due_block=999999999, coin=coin, value=available_withdraw, gas_coin=coin,
@@ -195,16 +181,14 @@ def my_wallet(client: Client, message: Message):
     if available_send > 0:
         user_address = get_user_timeloop_address(message.chat.id)
         logger.info(f'User TL: {user_address}')
-        timeloop_text = user.choice_localized(
-            ru_obj='Пополнить счет в игре Time Loop',
-            en_obj='Replenish Time Loop game balance')
+        timeloop_text = user.choice_localized(text_name='btn-withdraw-timeloop')
 
     markup = markup_wallet(
         to_wallet_text=to_wallet_text,
         redeem_deeplink=redeem_url,
         timeloop_text=timeloop_text,
         user_address=user_address)
-    text = user.choice_localized(pk_text=16).format(
+    text = user.choice_localized(text_name='msg-wallet').format(
         user_wallet_address=wallet.address,
         user_seed_phrase=wallet.mnemonic,
         amount=wallet.balance_formatted)
@@ -227,14 +211,16 @@ def timeloop(client: Client, call: CallbackQuery):
 
     user_timeloop_address = call.data.split('_')[-1]
     if not user_timeloop_address:
-        client.answer_callback_query(call.id, text='У вас нет аккаунта в игре.')
-
+        alert_text = user.choice_localized(text_name='alert-tl-no-account')
+        client.answer_callback_query(call.id, text=alert_text)
         return
 
     if available_send <= 0:
-        client.answer_callback_query(call.id, text='Недостаточно средств')
+        alert_text = user.choice_localized(text_name='alert-tl-no-money')
+        client.answer_callback_query(call.id, text=alert_text)
         return
 
     coin_send(
         wallet_obj['private_key'], wallet_obj['address'], user_timeloop_address, coin, available_send, gas_coin=coin)
-    client.answer_callback_query(call.id, text='Баланс успешно пополнен')
+    alert_text = user.choice_localized(text_name='alert-tl-success')
+    client.answer_callback_query(call.id, text=alert_text)

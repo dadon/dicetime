@@ -1,7 +1,9 @@
 import logging
+from time import sleep
 
 from django.core.management.base import BaseCommand
 from pyrogram import Client
+from pyrogram.errors import FloodWait, RPCError
 
 from dice_time.settings import ADMIN_TG_IDS, TG_API_ID, TG_API_HASH, API_TOKEN
 
@@ -43,7 +45,12 @@ class Command(BaseCommand):
                     app.send_message(
                         uid, MESSAGE, disable_web_page_preview=True, reply_markup=user.home_markup)
                     count_success += 1
-                except Exception as exc:
+                except FloodWait as exc:
+                    sleep(exc.x)
+                    app.send_message(
+                        uid, MESSAGE, disable_web_page_preview=True, reply_markup=user.home_markup)
+                    count_success += 1
+                except RPCError as exc:
                     logger.info(user)
                     logger.info('###############')
                     logger.info(f'\n\n{type(exc)}: {exc}\n\n')

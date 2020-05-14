@@ -21,7 +21,7 @@ CHAT_BALANCE_JOB_INTERVAL = 10
 PAYMENT_JOB_INTERVAL = 300
 PAYMENT_JOB_MAX_MULTISEND = 75
 
-LOCAL_PAYMENT_JOB_INTERVAL = 5
+LOCAL_PAYMENT_JOB_INTERVAL = 120
 
 
 def update_balances(app: Client, model: Union[Type[ChatWallet], Type[MinterWallets]], notify: bool = True):

@@ -80,7 +80,7 @@ def dice_time(client: Client, message: Message):
 
         logger.info('######## Dice Event')
         logger_dice_event.info(f'\nDice event: {user} in chat#{message.chat.id} "{message.chat.title}"')
-        on_dice_event(client, message, user, chat_obj)
+        on_dice_event(client, message, user, chat_obj, chatmember)
         return
 
 

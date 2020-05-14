@@ -239,6 +239,11 @@ LOGGING = {
         },
     },
     'loggers': {
+        'pyrogram.session.session': {
+            'handlers': [],
+            'level': 'INFO',
+            'propagate': False,
+        },
         'pyrogram': {
             'handlers': ['console', 'file'],
             'level': 'INFO',

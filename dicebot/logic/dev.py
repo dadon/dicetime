@@ -2,7 +2,7 @@ from random import randint
 
 from pyrogram import Message, Client
 
-from dicebot.bot.markup import KB_REMOVE
+from dicebot.bot.markup import KB_REMOVE, kb_home
 from dicebot.logic.core import calc_dice_reward
 from users.models import User
 
@@ -26,5 +26,5 @@ Reward: {reward}
 Details:
 
 {details_pretty}```"""
-    markup = KB_REMOVE if message.chat.type != 'private' else user.home_markup
+    markup = KB_REMOVE if message.chat.type != 'private' else kb_home(user)
     message.reply(response, quote=False, reply_markup=markup)

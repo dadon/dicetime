@@ -83,9 +83,9 @@ def get_user_model(tg_user: tgUser):
         })
 
     # try change lang when user changes lang
-    if not is_created and user.language != user_lang_model:
-        user.language = user_lang_model
-        user.save()
+    # if not is_created and user.language != user_lang_model:
+    #     user.language = user_lang_model
+    #     user.save()
     return user, is_created
 
 

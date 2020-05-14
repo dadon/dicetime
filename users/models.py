@@ -6,7 +6,6 @@ from django.db import models
 from django_pg_bulk_update import BulkUpdateManager
 from encrypted_model_fields.fields import EncryptedTextField
 
-from dicebot.bot.markup import kb_home, KB_HOME_RU, KB_HOME_EN
 from dicebot.logic.helpers import truncate
 from .fields import JSONField
 
@@ -128,10 +127,6 @@ class User(models.Model):
     @property
     def profile_markdown(self):
         return f'[{self.username or self.first_name}]({self.profile_url})'
-
-    @property
-    def home_markup(self):
-        return self.choice_localized(ru_obj=kb_home(KB_HOME_RU), en_obj=kb_home(KB_HOME_EN))
 
     def choice_localized(self, text_name=None, ru_obj='', en_obj=''):
         if not text_name:

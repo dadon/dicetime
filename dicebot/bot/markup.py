@@ -14,7 +14,8 @@ KB_HOME_EN = [[RULES_BTN_EN, WALLET_BTN_EN], [CHAT_ADMIN_EN]]
 KB_REMOVE = ReplyKeyboardRemove()
 
 
-def kb_home(kb):
+def kb_home(user):
+    kb = user.choice_localized(ru_obj=KB_HOME_RU, en_obj=KB_HOME_EN)
     return ReplyKeyboardMarkup(kb, resize_keyboard=True)
 
 
@@ -36,7 +37,8 @@ def markup_chat_list(chats):
 
 def markup_chat_actions(chat, btn_texts):
     u_limit_text = btn_texts['ulimit'].format(ulimit=chat.user_limit_day, coin=chat.coin)
-    c_limit_text = btn_texts['climit'].format(ulimit=chat.chat_limit_day, coin=chat.coin)
+    c_limit_text = btn_texts['climit'].format(climit=chat.chat_limit_day, coin=chat.coin)
+
     dice_time_text = btn_texts['dt'].format(
         dt_from=chat.dice_time_from.strftime("%H:%M"),
         dt_to=chat.dice_time_to.strftime("%H:%M"))

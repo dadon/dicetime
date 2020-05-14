@@ -7,7 +7,7 @@ from mintersdk.sdk.wallet import MinterWallet
 from pyrogram import Client, Message, CallbackQuery
 from pyrogram.errors import ChannelInvalid
 
-from dicebot.bot.markup import markup_take_money, markup_chat_actions, markup_add_to_chat, markup_chat_list
+from dicebot.bot.markup import markup_take_money, markup_chat_actions, markup_add_to_chat, markup_chat_list, kb_home
 from dicebot.logic.domain import schedule_payment
 from dicebot.logic.helpers import truncate
 from dicebot.logic.minter import coin_convert
@@ -249,7 +249,7 @@ def handle_missed_notifications(app: Client, user: User):
     missed_notifies.update(is_notified=True)
 
     notify_text = user.choice_localized(text_name='msg-notify-missed-rewards')
-    app.send_message(user.id, notify_text, reply_markup=user.home_markup)
+    app.send_message(user.id, notify_text, reply_markup=kb_home(user))
 
 
 def send_chat_detail(client: Client, chat: AllowedChat, user, root_message_id):

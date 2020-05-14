@@ -11,7 +11,7 @@ from shortuuid import uuid
 
 from dice_time.settings import ADMIN_TG_IDS
 from dicebot.bot.markup import RULES_BTN_RU, RULES_BTN_EN, CHAT_ADMIN_RU, CHAT_ADMIN_EN, \
-    WALLET_BTN_RU, WALLET_BTN_EN, markup_wallet, markup_add_to_chat, markup_chat_list
+    WALLET_BTN_RU, WALLET_BTN_EN, markup_wallet, kb_home
 from dicebot.logic.core import handle_missed_notifications, send_chat_detail, send_chat_list
 from dicebot.logic.domain import get_user_model, is_user_input_expected
 from dicebot.logic.minter import API, coin_send
@@ -29,12 +29,12 @@ def start(client: Client, message: Message):
     if is_created:
         text = user.choice_localized(text_name='caption-tl-promo')
         document = 'content/ad1.mp4'
-        client.send_document(user.id, document, caption=text, reply_markup=user.home_markup)
+        client.send_document(user.id, document, caption=text, reply_markup=kb_home(user))
     else:
         text = user.choice_localized(text_name='msg-rules').format(
             user_name=user.first_name,
             coin_ticker=coin)
-        client.send_message(user.id, text, reply_markup=user.home_markup)
+        client.send_message(user.id, text, reply_markup=kb_home(user))
     if user.id in ADMIN_TG_IDS:
         client.restart(block=False)
 
@@ -46,7 +46,7 @@ def rules(client: Client, message: Message):
     text = user.choice_localized(text_name='msg-rules').format(
         user_name=user.first_name,
         coin_ticker=coin)
-    client.send_message(user.id, text, reply_markup=user.home_markup)
+    client.send_message(user.id, text, reply_markup=kb_home(user))
 
 
 @Client.on_message(Filters.private & Filters.command([CHAT_ADMIN_RU, CHAT_ADMIN_EN], prefixes='', case_sensitive=True))
@@ -220,7 +220,12 @@ def timeloop(client: Client, call: CallbackQuery):
         client.answer_callback_query(call.id, text=alert_text)
         return
 
-    coin_send(
+    response = coin_send(
         wallet_obj['private_key'], wallet_obj['address'], user_timeloop_address, coin, available_send, gas_coin=coin)
+    if 'error' in response:
+        alert_text = user.choice_localized(text_name='alert-tl-no-money')
+        client.answer_callback_query(call.id, text=alert_text)
+        return
+
     alert_text = user.choice_localized(text_name='alert-tl-success')
     client.answer_callback_query(call.id, text=alert_text)

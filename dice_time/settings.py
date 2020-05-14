@@ -239,9 +239,10 @@ LOGGING = {
         },
     },
     'loggers': {
-        'TeleBot': {
+        'pyrogram': {
             'handlers': ['console', 'file'],
-            'level': 'DEBUG',
+            'level': 'INFO',
+            'propagate': False,
         },
         'Dice': {
             'handlers': ['console', 'file'],

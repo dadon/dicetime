@@ -24,7 +24,7 @@ def minter_send_coins(
     r = coin_send(w_from['private_key'], w_from['address'], address_to, coin, amount, gas_coin=gas_coin)
     logger.info(f'--- P2P Send Result: {r} ---')
 
-    with Client('pyrosession', no_updates=True, api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN) as client:
+    with Client('session_sendcoins', no_updates=True, api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN) as client:
 
         if 'error' not in r:
             u_sender = User.objects.get(id=tg_id_sender)

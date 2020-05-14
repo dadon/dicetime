@@ -13,7 +13,7 @@ class Command(BaseCommand):
     def handle(self, **options):
         logger.info('Start polling')
         app = Client(
-            'pyrosession',
+            'session_main',
             api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN,
-            plugins={'root': 'dicebot/bot'}, workers=8)
+            plugins={'root': 'dicebot/bot'}, workers=4)
         app.run()

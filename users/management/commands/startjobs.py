@@ -28,7 +28,7 @@ class Command(BaseCommand):
         scheduler = BackgroundScheduler()
 
         client = Client(
-            'pyrosession', api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN, no_updates=True)
+            'session_jobs', api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN, no_updates=True)
         client.start()
 
         scheduler.add_job(update_user_balances, 'interval', seconds=USER_BALANCE_JOB_INTERVAL, args=(client, ))

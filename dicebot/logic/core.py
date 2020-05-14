@@ -168,6 +168,7 @@ def calc_dice_reward(app: Client, user, chatmember, dice, chat_id):
     details['dice'] = dice
     details['dice_multiplier'] = dice_multiplier
 
+    user_reputation = 0
     if chatmember:
         user_reputation = wilson_score(chatmember.upvotes, chatmember.downvotes)
         details['user_upvotes'] = chatmember.upvotes

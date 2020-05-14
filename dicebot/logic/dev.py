@@ -4,6 +4,7 @@ from pyrogram import Message, Client
 
 from dicebot.bot.markup import KB_REMOVE, kb_home
 from dicebot.logic.core import calc_dice_reward
+from dicebot.logic.domain import get_chatmember_model, get_chat_model
 from users.models import User
 
 
@@ -16,7 +17,9 @@ def send_test_dice(app: Client, user: User, message: Message):
     if not dice:
         dice = randint(1, 6)
 
-    reward, details = calc_dice_reward(app, user, None, dice, chat_id)
+    chat_obj, _ = get_chat_model(app, message.chat, recalc_creation_date=False)
+    chatmember, _ = get_chatmember_model(app, user, chat_obj)
+    reward, details = calc_dice_reward(app, user, chatmember, dice, chat_id)
 
     details_pretty = '\n'.join([f'    {param}: {str(value)}' for param, value in sorted(details.items())])
     response = f"""

@@ -5,7 +5,7 @@ from typing import Union
 
 from mintersdk.sdk.wallet import MinterWallet
 from pyrogram import Client, Message, CallbackQuery
-from pyrogram.errors import ChannelInvalid
+from pyrogram.errors import ChannelInvalid, RPCError
 
 from dicebot.bot.markup import markup_take_money, markup_chat_actions, markup_add_to_chat, markup_chat_list, kb_home
 from dicebot.logic.domain import schedule_payment
@@ -202,10 +202,12 @@ def _notify_win(app: Client, user: User, event, event_local=None):
         local_text = f' + {event_local.summa} {event_local.coin}'
     win_text = user.choice_localized(text_name='msg-chat-win-notify')
     win_text = win_text.format(X=event.summa, coin=event.coin) + local_text
-    app.send_message(user.id, win_text)
-
-    event.is_notified = True
-    event.save()
+    try:
+        app.send_message(user.id, win_text)
+        event.is_notified = True
+        event.save()
+    except RPCError as exc:
+        logger_dice_event.exception(f'### Err sending user ({user}) win notify. Event {event}')
 
 
 def _button_win(app: Client, user: User, dice_msg: Message, event, event_local=None):

@@ -38,10 +38,12 @@ def get_chat_model(app: Client, tg_chat: Chat, recalc_creation_date=True):
 
     if not chat_obj.creator:
         tg_creator = get_chat_creator(tg_chat)
-        creator_user, _ = get_user_model(tg_creator)
-        chat_obj.creator = creator_user
-        chat_obj.save()
-
+        if tg_creator:
+            creator_user, _ = get_user_model(tg_creator)
+            chat_obj.creator = creator_user
+            chat_obj.save()
+        else:
+            logger.error(f'### Failed get chat creator for {tg_chat}')
     if recalc_creation_date and chat_obj.status in [None, 'errored']:
         chat_date = None
         try:

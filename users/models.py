@@ -18,13 +18,13 @@ class AllowedChat(models.Model):
     chat_id = models.BigIntegerField(verbose_name='Chat ID')
 
     title_chat = models.CharField(
-        max_length=40,
+        max_length=140,
         blank=True,
         null=True,
         verbose_name='Имя чата')
 
     link_chat = models.CharField(
-        max_length=40,
+        max_length=140,
         blank=True,
         null=True,
         verbose_name='Юзернейм группы')
@@ -319,7 +319,7 @@ class DiceEvent(models.Model):
         default=False)
 
     title_chat = models.CharField(
-        max_length=40,
+        max_length=140,
         blank=True,
         null=True,
         verbose_name='Имя чата')

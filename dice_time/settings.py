@@ -239,6 +239,11 @@ LOGGING = {
         },
     },
     'loggers': {
+        'pyrogram.client.ext.syncer': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
         'pyrogram.session.session': {
             'handlers': ['console', 'file'],
             'level': 'WARNING',
@@ -276,13 +281,3 @@ LOGGING = {
         },
     },
 }
-
-
-
-
-
-#
-
-
-
-

@@ -15,5 +15,5 @@ class Command(BaseCommand):
         app = Client(
             'pyrosession',
             api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN,
-            plugins={'root': 'dicebot/bot'})
+            plugins={'root': 'dicebot/bot'}, workers=8)
         app.run()

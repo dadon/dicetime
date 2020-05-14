@@ -20,7 +20,7 @@ def get_chatmember_model(app: Client, user, chat):
 
     chatmember.joined_date = get_chatmember_joined_date(app, user, chat)
     if chatmember.joined_date is None:
-        logger.warning('### Cant get user joined date. Setting "now"')
+        logger.warning(f'### Cant get user {user} joined date to chat {chat}. Setting "now"')
         chatmember.joined_date = datetime.utcnow()
 
     chatmember.save()

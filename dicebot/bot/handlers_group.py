@@ -90,7 +90,7 @@ def calc_reputation(client, message: Message):
     original_msg = message.reply_to_message
     sender_user = message.from_user
     receiver_user = original_msg.from_user
-    if sender_user.id == receiver_user.id:
+    if not sender_user or not receiver_user or sender_user.id == receiver_user.id:
         return
     user, _ = get_user_model(receiver_user)
     chat_obj, is_created = get_chat_model(client, message.chat, recalc_creation_date=False)

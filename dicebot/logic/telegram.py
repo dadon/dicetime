@@ -33,7 +33,11 @@ def get_chatmember_joined_date(app: Client, user, chat):
 def get_chat_creator(chat: Chat):
     logger.info(f'====[get_chat_creator]==== iter chat admins "{chat.title}" (@{chat.username}, {chat.id})')
     for member in chat.iter_members(filter=Filters.ADMINISTRATORS):
-        logger.info(f'Member: @{member.user.username}, {member.status}, "{member.title}", joined {member.joined_date}'
+        user = member.user
+        username = '@' + user.username if user else None
+        if not user:
+            logger.info(f'########[member.user=None]################\n{member}\n#######################')
+        logger.info(f'Member[{username}], {member.status}, "{member.title}", joined {member.joined_date}'
                     f'(promoted by @{member.promoted_by.username})')
         if member.status != 'creator':
             continue

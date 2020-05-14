@@ -34,7 +34,7 @@ def get_chat_creator(chat: Chat):
     logger.info(f'====[get_chat_creator]==== iter chat admins "{chat.title}" (@{chat.username}, {chat.id})')
     for member in chat.iter_members(filter=Filters.ADMINISTRATORS):
         user = member.user
-        username = '@' + user.username if user else None
+        username = '@' + user.username if user and user.username else None
         if not user:
             logger.info(f'########[member.user=None]################\n{member}\n#######################')
         logger.info(f'Member[{username}], {member.status}, "{member.title}", joined {member.joined_date}'

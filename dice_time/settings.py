@@ -240,8 +240,8 @@ LOGGING = {
     },
     'loggers': {
         'pyrogram.session.session': {
-            'handlers': [],
-            'level': 'INFO',
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
             'propagate': False,
         },
         'pyrogram': {

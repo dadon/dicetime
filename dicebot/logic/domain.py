@@ -26,7 +26,7 @@ def get_chatmember_model(app: Client, user, chat):
     return chatmember, is_created
 
 
-def get_chat_model(app: Client, tg_chat: Chat):
+def get_chat_model(app: Client, tg_chat: Chat, recalc_creation_date=True):
     chat_obj, is_created = AllowedChat.objects.get_or_create(
         chat_id=tg_chat.id,
         defaults={
@@ -40,7 +40,7 @@ def get_chat_model(app: Client, tg_chat: Chat):
         chat_obj.creator = creator_user
         chat_obj.save()
 
-    if chat_obj.status in [None, 'errored']:
+    if recalc_creation_date and chat_obj.status in [None, 'errored']:
         chat_date = None
         try:
             chat_date = get_chat_creation_date(app, tg_chat.id)

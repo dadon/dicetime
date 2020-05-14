@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import datetime
 from pprint import pformat
 from typing import Union
 
@@ -13,19 +13,19 @@ from dicebot.logic.helpers import truncate
 from dicebot.logic.minter import coin_convert
 from dicebot.logic.stats import get_user_won_by_chats, get_chat_won, get_total_won_by_chats
 from dicebot.logic.tasks import minter_send_coins
-from users.models import User, AllowedChat, ChatWallet, DiceEvent, Exceptions, Tools, MinterWallets
+from users.models import User, AllowedChat, ChatWallet, DiceEvent, Exceptions, Tools, MinterWallets, ChatMember
 
 logger = logging.getLogger('Dice')
 logger_dice_event = logging.getLogger('DiceEvent')
 
 
-def on_dice_event(app: Client, message: Message, user: User, chat: AllowedChat):
+def on_dice_event(app: Client, message: Message, user: User, chat: AllowedChat, chatmember: ChatMember):
     dice_msg = app.send_dice(
         message.chat.id,
         disable_notification=True,
         reply_to_message_id=message.message_id)
 
-    reward, details = calc_dice_reward(app, user, dice_msg.dice.value, message.chat.id)
+    reward, details = calc_dice_reward(app, user, chatmember, dice_msg.dice.value, message.chat.id)
 
     is_win = bool(reward)
     event = DiceEvent.objects.create(
@@ -127,13 +127,14 @@ def calc_dice_reward_local(user, chat_local, details):
     return truncate(max(0, reward), 4)
 
 
-def calc_dice_reward(app: Client, user, dice, chat_id):
+def calc_dice_reward(app: Client, user, chatmember, dice, chat_id):
     details = {}
     is_blacklisted = Exceptions.objects.filter(user=user).exists()
     details['blacklisted'] = is_blacklisted
     if is_blacklisted:
         return 0, details
-    details['today'] = today = date.today()
+    now = datetime.utcnow()
+    details['today'] = today = now.date()
     try:
         details['members'] = members = app.get_chat_members_count(chat_id)
     except ValueError:
@@ -167,12 +168,13 @@ def calc_dice_reward(app: Client, user, dice, chat_id):
     details['dice'] = dice
     details['dice_multiplier'] = dice_multiplier
 
-    user_reputation = wilson_score(user.upvotes, user.downvotes)
-    details['user_upvotes'] = user.upvotes
-    details['user_downvotes'] = user.downvotes
-    details['user_reputation'] = user_reputation
-    details['user_influence'] = None
-    details['user_lifetime'] = None
+    if chatmember:
+        user_reputation = wilson_score(chatmember.upvotes, chatmember.downvotes)
+        details['user_upvotes'] = chatmember.upvotes
+        details['user_downvotes'] = chatmember.downvotes
+        details['user_reply_count'] = chatmember.reply_count
+        details['user_reputation'] = user_reputation
+        details['user_lifetime'] = (now - chatmember.joined_date).total_seconds()
 
     if is_chat_win:
         return 0, details

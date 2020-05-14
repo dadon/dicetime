@@ -165,10 +165,15 @@ class ChatMember(models.Model):
 
     joined_date = models.DateTimeField(verbose_name='Дата добавления в чат', default=None, null=True)
 
+    upvotes = models.PositiveIntegerField(verbose_name='Положительные отклики', default=0)
+    downvotes = models.PositiveIntegerField(verbose_name='Отрицательные отклики', default=0)
+    reply_count = models.PositiveIntegerField(verbose_name='Количество полученных reply', default=0)
+
     class Meta:
         unique_together = (
             ('chat', 'user')
         )
+
 
 class ChatWallet(models.Model):
     objects = BulkUpdateManager()
@@ -414,7 +419,7 @@ class Payment(models.Model):
 
 
 class Text(models.Model):
-    name = models.CharField(max_length=30, verbose_name='Название сообщения',default='Сообщение без номера')
+    name = models.CharField(max_length=30, verbose_name='Название сообщения')
     text_ru = models.TextField(verbose_name='Текст сообщения')
     text_eng = models.TextField(verbose_name='Текст сообщения eng')
     attachment = models.FileField(verbose_name='Поле для видео',blank=True,null=True)

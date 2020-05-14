@@ -16,7 +16,7 @@ def send_test_dice(app: Client, user: User, message: Message):
     if not dice:
         dice = randint(1, 6)
 
-    reward, details = calc_dice_reward(app, user, dice, chat_id)
+    reward, details = calc_dice_reward(app, user, None, dice, chat_id)
 
     details_pretty = '\n'.join([f'    {param}: {str(value)}' for param, value in sorted(details.items())])
     response = f"""

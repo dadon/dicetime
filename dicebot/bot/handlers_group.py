@@ -87,7 +87,7 @@ def dice_time(client: Client, message: Message):
 
 
 @Client.on_message(Filters.text & Filters.group & Filters.reply, group=0)
-def calc_reputation(_, message: Message):
+def calc_reputation(client, message: Message):
     msg_normalized = normalize_text(message.text)
     original_msg = message.reply_to_message
     sender_user = message.from_user
@@ -95,8 +95,12 @@ def calc_reputation(_, message: Message):
     if sender_user.id == receiver_user.id:
         return
     user, _ = get_user_model(receiver_user)
+    chat_obj, is_created = get_chat_model(client, message.chat, recalc_creation_date=False)
+    chatmember, _ = get_chatmember_model(client, user, chat_obj)
 
+    chatmember.reply_count += 1
     user.reply_count += 1
+    chatmember.save()
     user.save()
 
     if len(message.text) > 20:
@@ -107,7 +111,9 @@ def calc_reputation(_, message: Message):
         t.phrase == msg_normalized if t.exact else t.phrase.lower() in msg_normalized
         for t in downvote_triggers)
     if is_downvote:
+        chatmember.downvotes += 1
         user.downvotes += 1
+        chatmember.save()
         user.save()
         return
 
@@ -116,7 +122,9 @@ def calc_reputation(_, message: Message):
         t.phrase == msg_normalized if t.exact else t.phrase.lower() in msg_normalized
         for t in upvote_triggers)
     if is_upvote:
+        chatmember.upvotes += 1
         user.upvotes += 1
+        chatmember.save()
         user.save()
         return
 

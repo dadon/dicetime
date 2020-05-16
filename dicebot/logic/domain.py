@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Union
+from typing import Union, List
 
 from pyrogram import Client, Chat, User as tgUser
 from mintersdk.sdk.wallet import MinterWallet
@@ -66,7 +66,7 @@ def get_chat_model(app: Client, tg_chat: Chat, recalc_creation_date=True):
 
 def get_user_model(tg_user: tgUser):
     lang_pk = {'ru': 1, 'en': 2}
-    user_lang = (tg_user.language_code or DEFAULT_LANGUAGE).split("-")[0]
+    user_lang = (getattr(tg_user, 'language_code', None) or DEFAULT_LANGUAGE).split("-")[0]
     user_lang = DEFAULT_LANGUAGE if user_lang not in SUPPORTED_LANGUAGES else user_lang
     user_lang_model = Language.objects.get(pk=lang_pk[user_lang])
 
@@ -90,6 +90,11 @@ def get_user_model(tg_user: tgUser):
     #     user.language = user_lang_model
     #     user.save()
     return user, is_created
+
+
+def get_user_model_many(tg_users: List[tgUser]):
+
+    return [get_user_model(tg_user) for tg_user in tg_users]
 
 
 def schedule_payment(event, wallet_local=None):

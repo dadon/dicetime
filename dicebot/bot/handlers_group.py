@@ -141,4 +141,11 @@ def send_coins_reply(client: Client, message: Message):
     if receiver.id == sender_user.id:
         return
     sender, _ = get_user_model(sender_user)
-    send_coins(message, sender, receiver)
+    send_coins(client, message, sender, receiver)
+
+
+@Client.on_message(Filters.group & Filters.regex('^\s*send.*', flags=re.IGNORECASE))
+def send_coins_direct(client: Client, message: Message):
+    sender_user = message.from_user
+    sender, _ = get_user_model(sender_user)
+    send_coins(client, message, sender)

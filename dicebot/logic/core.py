@@ -8,8 +8,8 @@ from pyrogram import Client, Message, CallbackQuery
 from pyrogram.errors import ChannelInvalid, RPCError
 
 from dicebot.bot.markup import markup_take_money, markup_chat_actions, markup_add_to_chat, markup_chat_list, kb_home
-from dicebot.logic.domain import schedule_payment
-from dicebot.logic.helpers import truncate
+from dicebot.logic.domain import schedule_payment, get_user_model_many
+from dicebot.logic.helpers import truncate, parse_send_coins
 from dicebot.logic.minter import coin_convert
 from dicebot.logic.stats import get_user_won_by_chats, get_chat_won, get_total_won_by_chats
 from dicebot.logic.tasks import minter_send_coins
@@ -220,25 +220,25 @@ def _button_win(app: Client, user: User, dice_msg: Message, event, event_local=N
     dice_msg.reply(take_money_msg_text, reply_markup=markup_take_money(bot.username, take_money_btn_text))
 
 
-def send_coins(message, sender, receiver):
-    msg_parts = list(filter(None, str(message.text).lower().split(' ')))
-    if len(msg_parts) < 2:
+def send_coins(app, message, sender, receiver=None):
+    parse_result = parse_send_coins(app, message)
+    if not parse_result:
         return
-    if msg_parts[0] != 'send':
-        return
-    try:
-        amount = float(msg_parts[1])
-    except Exception:
+    amount, coin, recipients = parse_result
+    if not receiver and not recipients:
         return
 
-    coin = 'TIME' if len(msg_parts) == 2 else msg_parts[2].upper()
-
+    if receiver:
+        recipients = [receiver]
+    else:
+        recipients = [u for u, _ in get_user_model_many(recipients)]
     w_from = MinterWallets.objects.get(user=sender)
-    w_to = MinterWallets.objects.get(user=receiver)
     mw_from = MinterWallet.create(w_from.mnemonic)
+
+    recipients_addresses = [mw.address for mw in MinterWallets.objects.filter(user__in=recipients)]
     minter_send_coins.delay(
-        mw_from, w_to.address, coin, amount,
-        message.chat.id, sender.id, receiver.id, sender.profile_markdown, receiver.profile_markdown)
+        mw_from, recipients_addresses, coin, amount,
+        message.chat.id, sender.id, [u.id for u in recipients])
 
 
 #  ===============

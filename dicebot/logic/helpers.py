@@ -4,6 +4,33 @@ from functools import wraps
 from time import sleep
 from typing import Union, Iterable, Callable
 
+from dicebot.logic.telegram import get_full_user
+
+
+def parse_send_coins(app, message):
+    text = message.text
+    msg_parts = list(filter(None, str(text).lower().split(' ')))
+    if not msg_parts or len(msg_parts) < 2 or msg_parts[0] != 'send':
+        return
+
+    try:
+        amount = float(msg_parts[1])
+    except Exception:
+        return
+
+    coin = 'TIME' if len(msg_parts) == 2 else msg_parts[2].upper()
+    recipients = []
+    for entity in message.entities or []:
+        if entity.type == 'mention':
+            username = message.text[entity.offset:entity.offset + entity.length]
+            user_full = get_full_user(app, username)
+            if user_full:
+                recipients.append(user_full.user)
+            continue
+        if entity.type == 'text_mention':
+            recipients.append(entity.user)
+    return amount, coin, recipients
+
 
 def normalize_text(text):
     """

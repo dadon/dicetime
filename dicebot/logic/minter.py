@@ -25,7 +25,7 @@ API = MinterRetryAPI(NODE_API_URL)
 def find_gas_coin(address):
     balances = API.get_balance(address, pip2bip=True)['result']['balance']
     gas_coin = 'BIP'
-    if balances['BIP'] < 0.01 and len(balances) > 1:
+    if balances['BIP'] < 1 and len(balances) > 1:
         for coin, balance in balances.items():
             if coin == 'BIP':
                 continue

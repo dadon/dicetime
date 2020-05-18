@@ -12,8 +12,9 @@ from dicebot.logic.domain import schedule_payment, get_user_model_many
 from dicebot.logic.helpers import truncate, parse_send_coins
 from dicebot.logic.minter import coin_convert
 from dicebot.logic.stats import get_user_won_by_chats, get_chat_won, get_total_won_by_chats
-from dicebot.logic.tasks import minter_send_coins
-from users.models import User, AllowedChat, ChatWallet, DiceEvent, Exceptions, Tools, MinterWallets, ChatMember
+from dicebot.logic.tasks import minter_send_coins, chat_airdrop_last_n
+from users.models import User, AllowedChat, ChatWallet, DiceEvent, Exceptions, Tools, MinterWallets, ChatMember, \
+    ChatAirdrop
 
 logger = logging.getLogger('Dice')
 logger_dice_event = logging.getLogger('DiceEvent')
@@ -207,7 +208,7 @@ def _notify_win(app: Client, user: User, event, event_local=None):
         app.send_message(user.id, win_text)
         event.is_notified = True
         event.save()
-    except RPCError as exc:
+    except RPCError:
         logger_dice_event.exception(f'### Err sending user ({user}) win notify. Event {event}')
 
 
@@ -240,6 +241,27 @@ def send_coins(app, message, sender, receiver=None):
         mw_from, recipients_addresses, coin, amount,
         message.chat.id, sender.id, [u.id for u in recipients])
 
+
+def create_coins_drop(app, user, chat, message, properties):
+    airdrop = ChatAirdrop.objects.create(
+        sender=user, chat=chat, mode=properties['mode'], message_id=message.message_id,
+        amount=properties['amount'], coin=properties['coin'], users_total=properties['count'])
+    if properties['mode'] == 'last':
+        chat_airdrop_last_n.delay(airdrop.id)
+    # следующих|предыдущих
+    direction_text = 'последних'#user.choice_localized(text_name=f'msg-drop-direction-{properties["mode"]}')
+    # Запущена раздача {X} {coin} среди {N} {direction} пользователей
+    text = 'Запущена раздача {X} {coin} среди {N} {direction} пользователей' #user.choice_localized(text_name='msg-drop-started')
+    text = text.format(
+        X=properties['amount'], coin=properties['coin'], N=properties['count'],
+        direction=direction_text)
+    try:
+        app.send_message(user.id, text)
+    except RPCError:
+        logger_dice_event.exception(
+            f'### Err sending user drop notify.'
+            f'User: {user}. Chat: {chat.id} {chat.title}. Properties: {properties}')
+        app.send_message(chat.id, text)
 
 #  ===============
 

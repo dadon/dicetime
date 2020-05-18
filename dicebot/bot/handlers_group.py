@@ -6,9 +6,9 @@ from pyrogram import Client, Filters, Message
 
 from dice_time.settings import RELEASE_UTC_DATETIME
 from dicebot.bot.markup import markup_add_to_chat
-from dicebot.logic.core import on_dice_event, send_coins
+from dicebot.logic.core import on_dice_event, send_coins, create_coins_drop
 from dicebot.logic.domain import get_chat_model, get_user_model, get_chatmember_model
-from dicebot.logic.helpers import normalize_text
+from dicebot.logic.helpers import normalize_text, parse_drop_coins
 from dicebot.logic.stats import is_user_won, get_user_won
 from users.models import Triggers, Tools
 
@@ -17,7 +17,9 @@ logger_dice_event = logging.getLogger('DiceEvent')
 
 
 @Client.on_message(Filters.text & Filters.group & ~Filters.forwarded, group=777)
-def dice_time(client: Client, message: Message):
+def handle_dice_time(client: Client, message: Message):
+    user, is_created = get_user_model(message.from_user)
+
     msg_normalized = normalize_text(message.text)
     logging.info(f'New msg:\n{message}')
     for trigger in Triggers.objects.filter(action='dice'):
@@ -36,7 +38,6 @@ def dice_time(client: Client, message: Message):
         # проверяем  положен ли выигрыш
         today = now.date()
 
-        user, is_created = get_user_model(message.from_user)
         chatmember, _ = get_chatmember_model(client, user, chat_obj)
         release_datetime = datetime.strptime(RELEASE_UTC_DATETIME, '%Y-%m-%d %H:%M')
         if chatmember.joined_date > release_datetime:
@@ -85,7 +86,7 @@ def dice_time(client: Client, message: Message):
 
 
 @Client.on_message(Filters.text & Filters.group & Filters.reply, group=0)
-def calc_reputation(client, message: Message):
+def handle_calc_reputation(client, message: Message):
     msg_normalized = normalize_text(message.text)
     original_msg = message.reply_to_message
     sender_user = message.from_user
@@ -128,7 +129,7 @@ def calc_reputation(client, message: Message):
 
 
 @Client.on_message(Filters.group & Filters.reply & Filters.regex('^\s*send.*', flags=re.IGNORECASE), group=1)
-def send_coins_reply(client: Client, message: Message):
+def handle_send_coins_reply(client: Client, message: Message):
     original_msg = message.reply_to_message
     sender_user = message.from_user
     receiver_user = original_msg.from_user
@@ -145,7 +146,35 @@ def send_coins_reply(client: Client, message: Message):
 
 
 @Client.on_message(Filters.group & Filters.regex('^\s*send.*', flags=re.IGNORECASE))
-def send_coins_direct(client: Client, message: Message):
+def handle_send_coins_direct(client: Client, message: Message):
     sender_user = message.from_user
     sender, _ = get_user_model(sender_user)
     send_coins(client, message, sender)
+
+
+@Client.on_message(Filters.group & Filters.regex('^\s*drop.*', flags=re.IGNORECASE))
+def handle_drop_coins(client: Client, message: Message):
+    parse_result = parse_drop_coins(message)
+
+    if not parse_result:
+        return
+
+    total, coin, mode, params = parse_result
+    if mode not in ['last', 'next']:
+        return
+
+    try:
+        count = int(params[0])
+    except Exception:
+        logger.exception('Wrong airdrop params')
+        return
+
+    sender_user = message.from_user
+    sender, _ = get_user_model(sender_user)
+    chat, _ = get_chat_model(client, message.chat, recalc_creation_date=False)
+    create_coins_drop(client, sender, chat, message, {
+        'amount': total,
+        'coin': coin,
+        'mode': mode,
+        'count': count
+    })

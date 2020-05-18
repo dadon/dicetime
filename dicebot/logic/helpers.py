@@ -7,6 +7,23 @@ from typing import Union, Iterable, Callable
 from dicebot.logic.telegram import get_full_user
 
 
+def parse_drop_coins(message):
+    text = message.text
+    msg_parts = list(filter(None, str(text).lower().split(' ')))
+    if not msg_parts or len(msg_parts) < 2 or msg_parts[0] != 'drop':
+        return
+
+    try:
+        total = float(msg_parts[1])
+    except Exception:
+        return
+
+    coin = 'TIME' if len(msg_parts) == 2 else msg_parts[2].upper()
+    mode = 'next' if len(msg_parts) <= 3 else msg_parts[3]
+    params = msg_parts[4:]
+    return total, coin, mode, params
+
+
 def parse_send_coins(app, message):
     text = message.text
     msg_parts = list(filter(None, str(text).lower().split(' ')))

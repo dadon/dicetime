@@ -15,6 +15,31 @@ from dice_time.settings import TG_API_ID, TG_API_HASH, API_TOKEN
 logger = logging.getLogger('Dice')
 
 
+def get_unique_prev_users(app, chat_id, message_id, limit, exclude=None):
+    exclude = exclude or []
+    found_users = []
+    current_message_id = message_id - 1
+
+    while current_message_id > 1 and len(found_users) < limit:
+        new_current_message_id = max(1, current_message_id - 200)
+        fetch_ids = reversed(range(new_current_message_id, current_message_id + 1))
+        messages = app.get_messages(chat_id, fetch_ids, replies=0)
+        for msg in messages:
+            if len(found_users) == limit:
+                break
+            if not msg.text \
+                    or not msg.chat \
+                    or not msg.from_user \
+                    or msg.chat.id != chat_id \
+                    or msg.from_user.is_bot \
+                    or msg.from_user.id in set(u.id for u in found_users) \
+                    or msg.from_user.id in exclude:
+                continue
+            found_users.append(msg.from_user)
+        current_message_id = new_current_message_id
+    return found_users
+
+
 def get_full_user(app, tg_id_or_username):
     peer_user = app.resolve_peer(tg_id_or_username)
     if not isinstance(peer_user, InputPeerUser):
@@ -48,8 +73,9 @@ def get_chat_creator(chat: Chat):
         username = '@' + user.username if user and user.username else None
         if not user:
             logger.info(f'########[member.user=None]################\n{member}\n#######################')
+        promoted_by = member.promoted_by.username or member.promoted_by.id if member.promoted_by else None
         logger.info(f'Member[{username}], {member.status}, "{member.title}", joined {member.joined_date}'
-                    f'(promoted by @{member.promoted_by.username})')
+                    f'(promoted by @{promoted_by})')
         if member.status != 'creator':
             continue
         logger.info('####[get_chat_creator]####')

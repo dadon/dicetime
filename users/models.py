@@ -5,6 +5,7 @@ from django.db import models
 
 from django_pg_bulk_update import BulkUpdateManager
 from encrypted_model_fields.fields import EncryptedTextField
+from mintersdk.sdk.wallet import MinterWallet
 
 from dicebot.logic.helpers import truncate
 from .fields import JSONField
@@ -218,10 +219,10 @@ class ChatWallet(models.Model):
 class MinterWallets(models.Model):
     objects = BulkUpdateManager()
 
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         User,
         verbose_name='Владелец кошелька',
-        on_delete=models.CASCADE)
+        on_delete=models.CASCADE, related_name='wallet')
     address = models.CharField(
         max_length=42,
         verbose_name='Адрес (Mx...)')
@@ -257,6 +258,10 @@ class MinterWallets(models.Model):
     @property
     def balance_formatted(self):
         return '\n'.join(f'{truncate(balance, 4)} {coin}' for coin, balance in self.balance.items() if balance > 0)
+
+    @property
+    def minter_wallet(self):
+        return MinterWallet.create(mnemonic=self.mnemonic)
 
 
 class Tools(models.Model):
@@ -439,3 +444,40 @@ class Triggers(models.Model):
     class Meta:
         verbose_name = 'Триггер'
         verbose_name_plural = 'Триггеры'
+
+
+class ChatAirdrop(models.Model):
+    sender = models.ForeignKey(
+        User,
+        verbose_name='Пользователь', on_delete=models.CASCADE)
+
+    chat = models.ForeignKey(
+        AllowedChat,
+        verbose_name='Чат', on_delete=models.CASCADE)
+    mode = models.CharField(verbose_name='Режим', max_length=10, choices=(
+        ('last', 'Среди последних написавших'),
+        ('next', 'Среди следующих написавших'),
+    ))
+    created_at = models.DateTimeField(
+        verbose_name='Дата старта',
+        auto_now_add=True)
+    message_id = models.BigIntegerField(
+        verbose_name='ID сообщения в чате',
+        null=True)
+    amount = models.DecimalField(
+        verbose_name='Cумма',
+        decimal_places=6, max_digits=24)
+    coin = models.CharField(
+        verbose_name='Монета',
+        default='TIME', max_length=10)
+    users_total = models.PositiveIntegerField(
+        verbose_name='Макс. количество участников')
+    users_current = models.PositiveIntegerField(
+        verbose_name='Текущее количество участников',
+        default=0)
+    is_finished = models.BooleanField(
+        verbose_name='Отметка об окончании',
+        default=False)
+    # deadline = models.DateTimeField(
+    #     verbose_name='Дата истекания (для ограниченных по времени)',
+    #     auto_now_add=True)

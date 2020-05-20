@@ -4,6 +4,7 @@ from typing import List
 from pyrogram.errors import UserIsBlocked, PeerIdInvalid, UserIsBot
 
 from celery_app import app
+from dicebot.bot.markup import markup_take_money
 from dicebot.logic.domain import get_user_model_many
 from dicebot.logic.minter import coin_send, find_gas_coin, coin_multisend
 from dicebot.logic.telegram import client, get_unique_prev_users
@@ -83,7 +84,11 @@ def minter_send_coins(
                     sender=u_sender.profile_markdown,
                     receiver=' '.join(u_recv.profile_markdown for u_recv in u_receivers),
                     amount=amount, coin=coin)
-                bot.send_message(group_chat_id, text_chat)
+                bot_user = bot.get_me()
+                take_money_btn_text = u_sender.choice_localized(text_name='btn-chat-win')
+                bot.send_message(
+                    group_chat_id, text_chat,
+                    reply_markup=markup_take_money(bot_user.username, take_money_btn_text))
 
         if 'error' in r and r['error'].get('tx_result', {}).get('code') == 107:
             no_coins_text = u_sender.choice_localized(text_name='msg-p2p-send-insuficcient').format(coin=coin)

@@ -143,6 +143,9 @@ def my_wallet(client: Client, message: Message):
 
     coin = Tools.objects.get(pk=1).coin
     amount = wallet.balance[coin]
+    if not amount:
+        coin = 'BIP'
+        amount = wallet.balance[coin]
     nonce = API.get_nonce(wallet.address)
 
     check_obj = MinterCheck(

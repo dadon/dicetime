@@ -65,7 +65,7 @@ def markup_take_money(bot_username, btn_text):
 
 
 def markup_tutorial(user, tutorial_name):
-    step = user.tutorial[tutorial_name]['step']
+    step = user.conversation_tutorial[tutorial_name]['step']
     tutorial_text = user.get_tutorial_text(tutorial_name, step=step+1)
 
     if tutorial_text != 'Text DoesNotExist':

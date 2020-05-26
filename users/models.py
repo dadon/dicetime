@@ -113,6 +113,10 @@ class User(models.Model):
         verbose_name='Флаги состояния переписки',
         default=dict)
 
+    tutorial = JSONField(
+        verbose_name='Туториалы юзера',
+        default=dict)
+
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
@@ -120,6 +124,12 @@ class User(models.Model):
     def __str__(self):
         return '{name} #{id}'.format(
             id=self.id, name=self.username or self.first_name)
+
+    def get_tutorial_text(self, tutorial_name, step=None):
+        text_name = f'tutorial-{tutorial_name}-{self.tutorial[tutorial_name]["step"]}'
+        if step:
+            text_name = f'tutorial-{tutorial_name}-{step}'
+        return self.choice_localized(text_name=text_name)
 
     @property
     def profile_url(self):
@@ -134,6 +144,7 @@ class User(models.Model):
             return {1: ru_obj, 2: en_obj}[self.language.pk]
         attrnames = {1: 'text_ru', 2: 'text_eng'}
         return getattr(Text.objects.get(name=text_name), attrnames[self.language.pk])
+
 
     def init_today_state(self, today):
         today_str = str(today)
@@ -268,8 +279,7 @@ class Tools(models.Model):
     address = models.CharField(
         verbose_name='Адрес выплат',
         max_length=42, default='')
-    mnemonic = EncryptedTextField(
-        verbose_name='Seed-фраза')
+    mnemonic = EncryptedTextField(verbose_name='Seed-фраза')
     payload = models.CharField(
         verbose_name='Payload при выводе средств из бота',
         default='',

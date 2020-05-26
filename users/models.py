@@ -120,13 +120,19 @@ class User(models.Model):
     today_state = JSONField(
         verbose_name='Состояние юзера сегодня',
         default=dict)
+
     conversation_flags = JSONField(
         verbose_name='Флаги состояния переписки',
         default=dict)
 
-    tutorial = JSONField(
+    conversation_tutorial = JSONField(
         verbose_name='Туториалы юзера',
         default=dict)
+
+    achievements = JSONField(
+        verbose_name='Достижения юзера',
+        default=dict
+    )
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -137,7 +143,7 @@ class User(models.Model):
             id=self.id, name=self.username or self.first_name)
 
     def get_tutorial_text(self, tutorial_name, step=None):
-        text_name = f'tutorial-{tutorial_name}-{self.tutorial[tutorial_name]["step"]}'
+        text_name = f'tutorial-{tutorial_name}-{self.conversation_tutorial[tutorial_name]["step"]}'
         if step:
             text_name = f'tutorial-{tutorial_name}-{step}'
         return self.choice_localized(text_name=text_name)

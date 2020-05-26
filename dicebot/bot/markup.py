@@ -66,17 +66,18 @@ def markup_take_money(bot_username, btn_text):
 
 def markup_tutorial(user, tutorial_name):
     step = user.tutorial[tutorial_name]['step']
+    tutorial_text = user.get_tutorial_text(tutorial_name, step=step+1)
 
-    try:
-        user.get_tutorial_text(tutorial_name, step=step+1)
+    if tutorial_text != 'Text DoesNotExist':
         markup = [[InlineKeyboardButton('← Назад', callback_data=f'tutorial-{tutorial_name}-back'),
                    InlineKeyboardButton('« Продолжить »', callback_data=f'tutorial-{tutorial_name}-continue')]]
+
         if step == 1:
             markup = [[InlineKeyboardButton('« Продолжить »', callback_data=f'tutorial-{tutorial_name}-continue')]]
-
-    except Exception:  # я не смог словить users.models.Text.DoesNotExist: Text matching query does not exist.
+    else:
         markup = [[InlineKeyboardButton('← Назад', callback_data=f'tutorial-{tutorial_name}-back'),
                    InlineKeyboardButton('« Завершить »', callback_data=f'tutorial-{tutorial_name}-end')]]
+
         if step == 1:
             markup = [[InlineKeyboardButton('« Завершить »', callback_data=f'tutorial-{tutorial_name}-end')]]
 

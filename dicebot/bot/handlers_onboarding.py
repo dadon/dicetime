@@ -5,7 +5,7 @@ from dicebot.logic.domain import get_user_model
 
 
 @Client.on_callback_query(Filters.create(lambda _, cb: cb.data[:8] == 'tutorial'))
-def tutorial_navigator(cli, cb):
+def tutorial_navigator(_, cb):
     user, _ = get_user_model(cb.from_user)
 
     params = cb.data.split('-')

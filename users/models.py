@@ -11,11 +11,22 @@ from dicebot.logic.helpers import truncate
 from .fields import JSONField
 
 
+class GetOrNoneManager(models.Manager):
+
+    def get_or_none(self, **kwargs):
+        try:
+            return self.get(**kwargs)
+        except self.model.DoesNotExist:
+            return None
+
+
 class Service(models.Model):
     pending_updates_skip_until = models.DateTimeField(null=True, default=None)
 
 
 class AllowedChat(models.Model):
+    objects = GetOrNoneManager()
+
     chat_id = models.BigIntegerField(verbose_name='Chat ID')
 
     title_chat = models.CharField(
@@ -143,8 +154,12 @@ class User(models.Model):
         if not text_name:
             return {1: ru_obj, 2: en_obj}[self.language.pk]
         attrnames = {1: 'text_ru', 2: 'text_eng'}
-        return getattr(Text.objects.get(name=text_name), attrnames[self.language.pk])
 
+        text = Text.objects.get_or_none(name=text_name)
+        if not text:
+            return 'Text DoesNotExist'
+
+        return getattr(text, attrnames[self.language.pk])
 
     def init_today_state(self, today):
         today_str = str(today)
@@ -429,6 +444,8 @@ class Payment(models.Model):
 
 
 class Text(models.Model):
+    objects = GetOrNoneManager()
+
     name = models.CharField(max_length=30, verbose_name='Название сообщения')
     text_ru = models.TextField(verbose_name='Текст сообщения')
     text_eng = models.TextField(verbose_name='Текст сообщения eng')
@@ -491,3 +508,4 @@ class ChatAirdrop(models.Model):
     # deadline = models.DateTimeField(
     #     verbose_name='Дата истекания (для ограниченных по времени)',
     #     auto_now_add=True)
+

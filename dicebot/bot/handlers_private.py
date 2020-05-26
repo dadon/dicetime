@@ -59,9 +59,9 @@ def chat_admin(client: Client, message: Message):
 def chat_detail(client: Client, call: CallbackQuery):
     user, _ = get_user_model(call.from_user)
     chat_id = int(call.data.split('.')[-1])
-    try:
-        chat = AllowedChat.objects.get(chat_id=chat_id, creator=user, status='activated')
-    except AllowedChat.DoesNotExist:
+    chat = AllowedChat.objects.get_or_none(chat_id=chat_id, creator=user, status='activated')
+
+    if not chat:
         return
 
     send_chat_detail(client, chat, user, call.message.message_id)
@@ -78,9 +78,9 @@ def chat_setting(client: Client, call: CallbackQuery):
         return
 
     setting, chat_id = call.data.split('.')[1:]
-    try:
-        chat = AllowedChat.objects.get(chat_id=chat_id, creator=user, status='activated')
-    except AllowedChat.DoesNotExist:
+    chat = AllowedChat.objects.get_or_none(chat_id=chat_id, creator=user, status='activated')
+
+    if not chat:
         return
 
     prompt_txt = user.choice_localized(text_name=f'msg-chat-setting-{setting}')
@@ -105,9 +105,10 @@ def set_chat_param(client: Client, message: Message):
     root_message_id = int(user.conversation_flags['input_params']['root_message_id'])
     user.conversation_flags = {}
     user.save()
-    try:
-        chat = AllowedChat.objects.get(chat_id=chat_id, creator=user, status='activated')
-    except AllowedChat.DoesNotExist:
+
+    chat = AllowedChat.objects.get_or_none(chat_id=chat_id, creator=user, status='activated')
+
+    if not chat:
         return
 
     try:

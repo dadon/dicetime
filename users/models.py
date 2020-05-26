@@ -11,11 +11,22 @@ from dicebot.logic.helpers import truncate
 from .fields import JSONField
 
 
+class GetOrNoneManager(models.Manager):
+
+    def get_or_none(self, **kwargs):
+        try:
+            return self.get(**kwargs)
+        except self.model.DoesNotExist:
+            return None
+
+
 class Service(models.Model):
     pending_updates_skip_until = models.DateTimeField(null=True, default=None)
 
 
 class AllowedChat(models.Model):
+    objects = GetOrNoneManager()
+
     chat_id = models.BigIntegerField(verbose_name='Chat ID')
 
     title_chat = models.CharField(
@@ -109,9 +120,19 @@ class User(models.Model):
     today_state = JSONField(
         verbose_name='Состояние юзера сегодня',
         default=dict)
+
     conversation_flags = JSONField(
         verbose_name='Флаги состояния переписки',
         default=dict)
+
+    conversation_tutorial = JSONField(
+        verbose_name='Туториалы юзера',
+        default=dict)
+
+    achievements = JSONField(
+        verbose_name='Достижения юзера',
+        default=dict
+    )
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -120,6 +141,12 @@ class User(models.Model):
     def __str__(self):
         return '{name} #{id}'.format(
             id=self.id, name=self.username or self.first_name)
+
+    def get_tutorial_text(self, tutorial_name, step=None):
+        text_name = f'tutorial-{tutorial_name}-{self.conversation_tutorial[tutorial_name]["step"]}'
+        if step:
+            text_name = f'tutorial-{tutorial_name}-{step}'
+        return self.choice_localized(text_name=text_name)
 
     @property
     def profile_url(self):
@@ -133,7 +160,12 @@ class User(models.Model):
         if not text_name:
             return {1: ru_obj, 2: en_obj}[self.language.pk]
         attrnames = {1: 'text_ru', 2: 'text_eng'}
-        return getattr(Text.objects.get(name=text_name), attrnames[self.language.pk])
+
+        text = Text.objects.get_or_none(name=text_name)
+        if not text:
+            return 'Text DoesNotExist'
+
+        return getattr(text, attrnames[self.language.pk])
 
     def init_today_state(self, today):
         today_str = str(today)
@@ -268,8 +300,7 @@ class Tools(models.Model):
     address = models.CharField(
         verbose_name='Адрес выплат',
         max_length=42, default='')
-    mnemonic = EncryptedTextField(
-        verbose_name='Seed-фраза')
+    mnemonic = EncryptedTextField(verbose_name='Seed-фраза')
     payload = models.CharField(
         verbose_name='Payload при выводе средств из бота',
         default='',
@@ -419,6 +450,8 @@ class Payment(models.Model):
 
 
 class Text(models.Model):
+    objects = GetOrNoneManager()
+
     name = models.CharField(max_length=30, verbose_name='Название сообщения')
     text_ru = models.TextField(verbose_name='Текст сообщения')
     text_eng = models.TextField(verbose_name='Текст сообщения eng')
@@ -481,3 +514,4 @@ class ChatAirdrop(models.Model):
     # deadline = models.DateTimeField(
     #     verbose_name='Дата истекания (для ограниченных по времени)',
     #     auto_now_add=True)
+

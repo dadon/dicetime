@@ -37,7 +37,7 @@ class Command(BaseCommand):
 
             if options['test']:
                 users = User.objects.filter(id__in=ADMIN_TG_IDS)
-            elif options['chat-test']:
+            elif options['chat_test']:
                 chats = [-1001466080283]
             else:
                 users = User.objects.all()

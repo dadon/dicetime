@@ -178,3 +178,11 @@ def handle_drop_coins(client: Client, message: Message):
         'mode': mode,
         'count': count
     })
+
+
+@Client.on_message(Filters.text & Filters.group)
+def fs(cli: Client, m: Message):
+    if m.text.lower() != 'fs':
+        return
+    fs_link = f'https://friendoscope.com/chat-{m.chat.username or abs(m.chat.id)}'
+    cli.send_message(m.chat.id, fs_link)

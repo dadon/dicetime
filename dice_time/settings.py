@@ -19,6 +19,7 @@ dotenv.read_dotenv('dice.env')
 RELEASE_UTC_DATETIME = os.getenv('RELEASE_UTC_DATETIME', '2020-04-08 17:00')
 LOCAL = bool(int(os.getenv('LOCAL', '0')))
 ADMIN_TG_IDS = [69062067, 144406]
+DEV_GROUP_ID = [-1001466080283]
 API_TOKEN = os.getenv('API_TOKEN', '')
 TG_API_HASH = os.getenv('TG_API_HASH', '')
 TG_API_ID = os.getenv('TG_API_ID', '')

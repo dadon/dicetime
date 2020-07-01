@@ -41,8 +41,8 @@ def broadcast_users(app, user_ids, text, doc=None):
     for uid in user_ids:
         try:
             if doc:
-                app.send_video(uid, doc, caption=text)
-                # app.send_document(uid, doc, caption=text)
+                # app.send_video(uid, doc, caption=text)
+                app.send_document(uid, doc, caption=text)
             else:
                 app.send_message(uid, text)
             success_uids.append(uid)

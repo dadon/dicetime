@@ -39,20 +39,24 @@ def broadcast_users(app, user_ids, text, doc=None):
     count_error = 0
     success_uids = []
     file_id, file_ref = None, None
-    if doc:
-        file = app.save_file(doc)
-        file_id = file.id
+
     for uid in user_ids:
         try:
             if doc:
-                msg = app.send_video(uid, str(file_id) or doc, file_ref=file_ref, caption=text)
-                if not file_ref and msg.video.file_ref:
+                name = file_id if file_id else doc
+                msg = app.send_video(uid, name, file_ref=file_ref, caption=text)
+                if not file_ref:
                     file_ref = msg.video.file_ref
+                if not file_id:
+                    file_id = msg.video.file_id
+                print(file_id)
+                print(file_ref)
             else:
                 app.send_message(uid, text)
             success_uids.append(uid)
             count_success += 1
         except FloodWait as exc:
+            logger.info(f'############### flood wait for {exc.x}')
             sleep(exc.x)
             app.send_message(uid, text)
             count_success += 1

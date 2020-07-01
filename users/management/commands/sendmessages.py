@@ -45,7 +45,7 @@ def broadcast_users(app, user_ids, text, doc=None):
                 # app.send_video(uid, doc, caption=text)
                 msg = app.send_document(uid, file_id or doc, file_ref=file_ref, caption=text)
                 if not file_id:
-                    file_id = msg.video.file_id
+                    file_id = str(msg.video.file_id)
                 if not file_ref:
                     file_ref = msg.video.file_ref
             else:

@@ -73,14 +73,14 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--fchatlist')
         parser.add_argument('--uall', action='store_true')
-        parser.add_argument('--utest')
+        parser.add_argument('--utest', nargs='+')
 
     def handle(self, **options):
         with Client('pyrosession', api_id=TG_API_ID, api_hash=TG_API_HASH, bot_token=API_TOKEN) as app:
             chat_list_filename = options.get('fchatlist')
             uall = options.get('uall')
             utest = options.get('utest')
-
+            print(utest)
             chat_ids = []
             user_ids = []
 
@@ -97,7 +97,7 @@ class Command(BaseCommand):
             if uall:
                 user_ids = [u.id for u in User.objects.all()]
             elif utest:
-                user_ids = [utest]
+                user_ids = utest
 
             if user_ids:
                 logger.info(f'Got {len(user_ids)} users')

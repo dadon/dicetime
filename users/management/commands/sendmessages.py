@@ -42,14 +42,12 @@ def broadcast_users(app, user_ids, text, doc=None):
     if doc:
         file = app.save_file(doc)
         file_id = file.id
-        # print(file)
     for uid in user_ids:
         try:
             if doc:
-                # app.send_video(uid, doc, caption=text)
-                msg = app.send_document(uid, file_id or doc, file_ref=file_ref, caption=text)
-                # if not file_ref:
-                #     file_ref = msg.video.file_ref
+                msg = app.send_video(uid, file_id or doc, file_ref=file_ref, caption=text)
+                if not file_ref and msg.video.file_ref:
+                    file_ref = msg.video.file_ref
             else:
                 app.send_message(uid, text)
             success_uids.append(uid)
